@@ -1,0 +1,5 @@
+## Multiple Rooms Implementation
+https://stackoverflow.com/questions/41322878/dynamic-rooms-in-socket-io
+
+## Get Started Express Example
+https://socket.io/get-started/chat
