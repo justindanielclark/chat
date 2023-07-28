@@ -1,15 +1,18 @@
 import { Router, Request, Response } from "express";
 
 const router = Router();
-
-router.get("/", (req: Request, res: Response) => {
+const getHandler = (req: Request, res: Response) => {
   res.statusCode = 200;
   return res.send("login route get");
-});
-
-router.post("/", (req: Request, res: Response) => {
+};
+const postHandler = (req: Request, res: Response) => {
   res.statusCode = 200;
   return res.send("login route post");
-});
+};
 
+router.get("/", getHandler);
+
+router.post("/", postHandler);
+
+export { router, getHandler, postHandler };
 export default router;
