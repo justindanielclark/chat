@@ -1,15 +1,12 @@
-import express from "express";
-import type { Express } from "express";
+import app from "./app";
 import http from "http";
 
 export class Server {
-  public app: Express;
   private _httpServer: ReturnType<typeof http.createServer>;
   private _port: number;
   constructor(port: number) {
-    this.app = express();
     this._port = port;
-    this._httpServer = http.createServer(this.app);
+    this._httpServer = http.createServer(app);
   }
   public start(callback?: (() => void) | Array<() => void>) {
     if (callback !== undefined) {
@@ -34,5 +31,8 @@ export class Server {
       }
     }
     this._httpServer.close();
+  }
+  public getServer(): ReturnType<typeof http.createServer> {
+    return this._httpServer;
   }
 }
