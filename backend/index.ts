@@ -1,23 +1,31 @@
 import express from "express";
-import dotenv from "dotenv";
 import path from "path";
-import http from "http";
-dotenv.config();
+import getPort from "./services/utils/process_dot_env/getPort";
+import { Server } from "./services/server";
+import defaultRouter from "./routes/default/defaultRouter";
+import apiRouter from "./routes/api/apiRouter";
 
-const app = express();
-const port = process.env.PORT || 3000;
-const server = http.createServer(app);
+const server = new Server(getPort(3000));
+const serverStartupRoutines = [
+  () => {
+    console.log("Server Starting...");
+  },
+];
+const serverShutdownRoutines = [
+  () => {
+    console.log("Server is shutting down...");
+  },
+];
+const shutdown = () => {
+  server.close(serverShutdownRoutines);
+  process.exit(1);
+};
 
-app.use(express.static(path.join(__dirname, "..", "_frontend_build")));
+server.app.use(express.static(path.join(__dirname, "..", "_frontend_build")));
+server.app.use("/api", apiRouter);
+server.app.use(defaultRouter);
 
-app.get("/api/*", (req, res) => {
-  res.status(200).send("nice!");
-});
+server.start(serverStartupRoutines);
 
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "..", "_frontend_build", "index.html"));
-});
-
-server.listen(port, () => {
-  console.log(`[server]: Server is up and running at http://localhost:${port}`);
-});
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
