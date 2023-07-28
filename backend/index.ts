@@ -1,11 +1,10 @@
-import express from "express";
-import path from "path";
+import dotenv from "dotenv";
 import getPort from "./services/utils/process_dot_env/getPort";
 import { Server } from "./services/server";
-import defaultRouter from "./routes/default/defaultRouter";
-import apiRouter from "./routes/api/apiRouter";
+import { Server as SocketServer } from "socket.io";
+dotenv.config();
 
-const server = new Server(getPort(3000));
+const server = new Server(getPort({ portIfProcessEnvUninstantiated: 3000 }));
 const serverStartupRoutines = [
   () => {
     console.log("Server Starting...");
@@ -16,16 +15,27 @@ const serverShutdownRoutines = [
     console.log("Server is shutting down...");
   },
 ];
-const shutdown = () => {
+const shutdownRoutine = () => {
   server.close(serverShutdownRoutines);
   process.exit(1);
 };
 
-server.app.use(express.static(path.join(__dirname, "..", "_frontend_build")));
-server.app.use("/api", apiRouter);
-server.app.use(defaultRouter);
+const io = new SocketServer(server.getServer());
+
+io.on("connection", (socket) => {
+  console.log("a user connected (server side)...");
+  socket.on("message", (data) => {
+    const packet = JSON.parse(data);
+    console.log(packet);
+  });
+  socket.emit("userConnected", "a user connected (client received)...");
+  socket.on("disconnect", (socket) => {
+    console.log("a user disconnected...");
+    io.emit("userDisconnected", "a user disconnected (client received)...");
+  });
+});
 
 server.start(serverStartupRoutines);
 
-process.on("SIGTERM", shutdown);
-process.on("SIGINT", shutdown);
+process.on("SIGTERM", shutdownRoutine);
+process.on("SIGINT", shutdownRoutine);
