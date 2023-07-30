@@ -1,10 +1,12 @@
 import dotenv from "dotenv";
 import getPort from "./services/utils/process_dot_env/getPort";
-import { Server } from "./services/server";
-import { Server as SocketServer } from "socket.io";
+import HTTP_Server from "./services/httpServer";
+import Socket_Server from "./services/socketServer";
 dotenv.config();
 
-const server = new Server(getPort({ portIfProcessEnvUninstantiated: 3000 }));
+HTTP_Server.initialize(getPort({ portIfProcessEnvUninstantiated: 3000 }));
+Socket_Server.initialize(HTTP_Server.getInstance());
+
 const serverStartupRoutines = [
   () => {
     console.log("Server Starting...");
@@ -16,26 +18,11 @@ const serverShutdownRoutines = [
   },
 ];
 const shutdownRoutine = () => {
-  server.close(serverShutdownRoutines);
+  HTTP_Server.close(serverShutdownRoutines);
   process.exit(1);
 };
 
-const io = new SocketServer(server.getServer());
-
-io.on("connection", (socket) => {
-  console.log("a user connected (server side)...");
-  socket.on("message", (data) => {
-    const packet = JSON.parse(data);
-    console.log(packet);
-  });
-  socket.emit("userConnected", "a user connected (client received)...");
-  socket.on("disconnect", (socket) => {
-    console.log("a user disconnected...");
-    io.emit("userDisconnected", "a user disconnected (client received)...");
-  });
-});
-
-server.start(serverStartupRoutines);
+HTTP_Server.start(serverStartupRoutines);
 
 process.on("SIGTERM", shutdownRoutine);
 process.on("SIGINT", shutdownRoutine);

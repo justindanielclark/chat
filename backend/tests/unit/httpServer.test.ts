@@ -1,4 +1,4 @@
-import { Server } from "../../services/server";
+import { HTTP_Server } from "../../services/httpServer";
 import http from "http";
 
 jest.mock("http", () => {
@@ -35,14 +35,14 @@ describe("Server", () => {
 
   describe("start() calls http.createServer().listen with the provided port", () => {
     it("runs when passed no callbacks", () => {
-      const server = new Server(testPort);
+      const server = new HTTP_Server(testPort);
       server.start();
       expect(mockCreateServer).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledWith(testPort);
     });
     it("runs through a single callback", () => {
-      const server = new Server(testPort);
+      const server = new HTTP_Server(testPort);
       server.start(callbacks[0]);
       expect(mockCreateServer).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledTimes(1);
@@ -50,7 +50,7 @@ describe("Server", () => {
       expect(callbacks[0]).toHaveBeenCalledTimes(1);
     });
     it("runs through each callback provided once", () => {
-      const server = new Server(testPort);
+      const server = new HTTP_Server(testPort);
       server.start(callbacks);
       expect(mockCreateServer).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledTimes(1);
@@ -63,20 +63,20 @@ describe("Server", () => {
 
   describe("close() calls http.createServer().close", () => {
     it("runs when passed no callbacks", () => {
-      const server = new Server(testPort);
+      const server = new HTTP_Server(testPort);
       server.start();
       server.close();
       expect(mockClose).toHaveBeenCalledTimes(1);
     });
     it("runs through a single callback", () => {
-      const server = new Server(testPort);
+      const server = new HTTP_Server(testPort);
       server.start();
       server.close(callbacks[0]);
       expect(mockClose).toHaveBeenCalledTimes(1);
       expect(callbacks[0]).toHaveBeenCalledTimes(1);
     });
     it("runs through each callback provided once", () => {
-      const server = new Server(testPort);
+      const server = new HTTP_Server(testPort);
       server.start();
       server.close(callbacks);
       expect(mockClose).toHaveBeenCalledTimes(1);
@@ -89,7 +89,7 @@ describe("Server", () => {
   describe("getServer()", () => {
     it("returns the same server created by http.createServer() in the constructor", () => {
       const createServerSpy = jest.spyOn(http, "createServer");
-      const server = new Server(testPort);
+      const server = new HTTP_Server(testPort);
       server.start();
       const returnedServer = server.getServer();
       expect(createServerSpy).toHaveBeenCalledTimes(1);
