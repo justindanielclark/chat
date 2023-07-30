@@ -1,9 +1,9 @@
 import http from "http";
 import { Server } from "socket.io";
-import ClientToServerEvents from "../../shared/types/SocketIO/ClientToServerEvents";
-import ServerToClientEvents from "../../shared/types/SocketIO/ServerToClientEvents";
-import InterServerEvents from "../../shared/types/SocketIO/InterServerEvents";
-import SocketData from "../../shared/types/SocketIO/SocketData";
+import ClientToServerEvents from "../../../../shared/types/SocketIO/ClientToServerEvents";
+import ServerToClientEvents from "../../../../shared/types/SocketIO/ServerToClientEvents";
+import InterServerEvents from "../../../../shared/types/SocketIO/InterServerEvents";
+import SocketData from "../../../../shared/types/SocketIO/SocketData";
 
 type Socket_Server_Type = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
 

@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
-import apiRouter from "../routes/api/apiRouter";
-import defaultRouter from "../routes/default/defaultRouter";
+import apiRouter from "../../routes/api/apiRouter";
+import defaultRouter from "../../routes/default/defaultRouter";
 
 const app = express();
 

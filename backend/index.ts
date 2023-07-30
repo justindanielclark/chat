@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
-import getPort from "./services/utils/process_dot_env/getPort";
-import HTTP_Server from "./services/httpServer";
-import Socket_Server from "./services/socketServer";
+import getPort from "./src/utils/process_dot_env/getPort";
+import HTTP_Server from "./src/services/httpServer/httpServer";
+import Socket_Server from "./src/services/socketServer/socketServer";
 dotenv.config();
 
 HTTP_Server.initialize(getPort({ portIfProcessEnvUninstantiated: 3000 }));

@@ -1,4 +1,4 @@
-import { HTTP_Server } from "../../services/httpServer";
+import { HTTP_Server } from "../../services/httpServer/httpServer";
 import http from "http";
 
 jest.mock("http", () => {
