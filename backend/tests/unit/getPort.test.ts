@@ -1,5 +1,5 @@
 // getPort.test.ts
-import getPort from "../../services/utils/process_dot_env/getPort";
+import getPort from "../../src/utils/process_dot_env/getPort";
 
 const OLD_ENV = { ...process.env };
 const defaultPort = 5000;
@@ -15,8 +15,6 @@ describe("getPort function", () => {
   });
   it("should return the default port when process.env.PORT is not set", () => {
     process.env.PORT = undefined;
-    expect(getPort({ portIfProcessEnvUninstantiated: defaultPort })).toBe(
-      defaultPort
-    );
+    expect(getPort({ portIfProcessEnvUninstantiated: defaultPort })).toBe(defaultPort);
   });
 });
