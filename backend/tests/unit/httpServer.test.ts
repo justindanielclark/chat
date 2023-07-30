@@ -22,7 +22,7 @@ describe("Server", () => {
   const mockServer = http.createServer(); // Mocked Above
   const mockCreateServer = http.createServer as jest.Mock;
   const mockListen = mockServer.listen as jest.Mock;
-  const mockClose = mockServer.listen as jest.Mock;
+  const mockClose = mockServer.close as jest.Mock;
   const testPort = 3000;
 
   beforeEach(() => {
@@ -42,6 +42,7 @@ describe("Server", () => {
       expect(mockCreateServer).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledWith(testPort);
+      HTTP_Server._testing_only_destroy();
     });
     it("runs through a single callback", () => {
       HTTP_Server.initialize(testPort);
@@ -90,7 +91,7 @@ describe("Server", () => {
 
   describe("getInstance()", () => {
     it("throws an error if called prior to being initialized", () => {
-      expect(HTTP_Server.getInstance()).toThrow();
+      expect(HTTP_Server.getInstance).toThrow();
     });
   });
 });

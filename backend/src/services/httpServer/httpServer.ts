@@ -7,7 +7,7 @@ type HTTP_Server_Type = ReturnType<typeof http.createServer>;
 
 class HTTP_Server {
   private static _instance: HTTP_Server_Type | undefined;
-  private static _port: number;
+  private static _port: number | undefined;
   private constructor() {
     //Private, so it's never called
   }
@@ -50,12 +50,11 @@ class HTTP_Server {
     if (HTTP_Server._instance) HTTP_Server._instance.close();
   }
   public static _testing_only_destroy(): void {
-    if (HTTP_Server._instance) {
-      if (HTTP_Server._instance.listening) {
-        HTTP_Server._instance.close();
-      }
-      HTTP_Server._instance = undefined;
+    if (HTTP_Server._instance && HTTP_Server._instance.listening) {
+      HTTP_Server._instance.close();
     }
+    HTTP_Server._instance = undefined;
+    HTTP_Server._port = undefined;
   }
 }
 
