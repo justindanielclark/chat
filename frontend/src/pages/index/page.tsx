@@ -1,8 +1,22 @@
+import SocketConnection from "../../services/socketConnection";
 export default function Page() {
+  const socket = SocketConnection.getInstance();
+
+  const handleButtonClick = () => {
+    socket.emit("clientMessage", {
+      date: new Date(),
+      message: "I pushed a button",
+    });
+  };
+
   return (
-    <div className="bg-blue-400 border-2 border-blue-200 rounded-lg">
-      <h1 className="text-2xl font-bold">This is the Index Page!</h1>
-      <p>This is some content!</p>
+    <div className="flex flex-col gap-6">
+      <button
+        className="w-fit px-2 py-1 bg-green-700 text-white"
+        onClick={handleButtonClick}
+      >
+        Click Me To Send Message
+      </button>
     </div>
   );
 }
