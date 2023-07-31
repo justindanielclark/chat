@@ -1,5 +1,5 @@
 // getPort.test.ts
-import getPort from "../../src/utils/process_dot_env/getPort";
+import getPort from "../../../src/utils/process_dot_env/getPort";
 
 const OLD_ENV = { ...process.env };
 const defaultPort = 5000;

@@ -1,5 +1,6 @@
-import HTTP_Server from "../../src/services/httpServer/httpServer";
+import Express_HTTP_Server from "../../../../src/services/express-http-server/express-http-server";
 import http from "http";
+import express from "express";
 
 jest.mock("http", () => {
   const originalHttp = jest.requireActual("http");
@@ -17,7 +18,8 @@ jest.mock("http", () => {
   };
 });
 
-describe("Server", () => {
+describe("Express_HTTP_Server", () => {
+  const dummyApp = express();
   const callbacks = [jest.fn(), jest.fn(), jest.fn()];
   const mockServer = http.createServer(); // Mocked Above
   const mockCreateServer = http.createServer as jest.Mock;
@@ -28,33 +30,29 @@ describe("Server", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
-  afterEach(() => {
-    HTTP_Server._testing_only_destroy();
-  });
   afterAll(() => {
     jest.resetAllMocks();
   });
 
   describe("start() calls http.createServer().listen with the provided port", () => {
     it("runs when passed no callbacks", () => {
-      HTTP_Server.initialize(testPort);
-      HTTP_Server.start();
+      const server = new Express_HTTP_Server(testPort, dummyApp);
+      server.start();
       expect(mockCreateServer).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledWith(testPort);
-      HTTP_Server._testing_only_destroy();
     });
     it("runs through a single callback", () => {
-      HTTP_Server.initialize(testPort);
-      HTTP_Server.start(callbacks[0]);
+      const server = new Express_HTTP_Server(testPort, dummyApp);
+      server.start(callbacks[0]);
       expect(mockCreateServer).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledWith(testPort);
       expect(callbacks[0]).toHaveBeenCalledTimes(1);
     });
     it("runs through each callback provided once", () => {
-      HTTP_Server.initialize(testPort);
-      HTTP_Server.start(callbacks);
+      const server = new Express_HTTP_Server(testPort, dummyApp);
+      server.start(callbacks);
       expect(mockCreateServer).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledTimes(1);
       expect(mockListen).toHaveBeenCalledWith(testPort);
@@ -63,35 +61,28 @@ describe("Server", () => {
       }
     });
   });
-
   describe("close() calls http.createServer().close", () => {
     it("runs when passed no callbacks", () => {
-      HTTP_Server.initialize(testPort);
-      HTTP_Server.start();
-      HTTP_Server.close();
+      const server = new Express_HTTP_Server(testPort, dummyApp);
+      server.start();
+      server.close();
       expect(mockClose).toHaveBeenCalledTimes(1);
     });
     it("runs through a single callback", () => {
-      HTTP_Server.initialize(testPort);
-      HTTP_Server.start();
-      HTTP_Server.close(callbacks[0]);
+      const server = new Express_HTTP_Server(testPort, dummyApp);
+      server.start();
+      server.close(callbacks[0]);
       expect(mockClose).toHaveBeenCalledTimes(1);
       expect(callbacks[0]).toHaveBeenCalledTimes(1);
     });
     it("runs through each callback provided once", () => {
-      HTTP_Server.initialize(testPort);
-      HTTP_Server.start();
-      HTTP_Server.close(callbacks);
+      const server = new Express_HTTP_Server(testPort, dummyApp);
+      server.start();
+      server.close(callbacks);
       expect(mockClose).toHaveBeenCalledTimes(1);
       for (let cb of callbacks) {
         expect(cb).toHaveBeenCalledTimes(1);
       }
-    });
-  });
-
-  describe("getInstance()", () => {
-    it("throws an error if called prior to being initialized", () => {
-      expect(HTTP_Server.getInstance).toThrow();
     });
   });
 });
