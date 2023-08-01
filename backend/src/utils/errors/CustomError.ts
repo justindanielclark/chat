@@ -1,5 +1,3 @@
-import { error } from "console";
-
 class CustomError extends Error {
   public error_name: string = "Custom Error";
   public occurredInFilename: string;

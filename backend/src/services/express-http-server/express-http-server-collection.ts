@@ -1,6 +1,7 @@
 import { Express } from "express";
 import ExpressHTTPServer from "./express-http-server";
-import CustomError from "../../utils/errors/CustomError";
+import ServerNameAlreadyExistsError from "../../utils/errors/ServerNameAlreadyExistsError";
+import PortAlreadyInUseError from "../../utils/errors/PortAlreadyInUseError";
 
 type PortsInUse = Set<number>;
 type ServerPool = Map<string, ExpressHTTPServer>;
@@ -54,19 +55,5 @@ class ExpressHttpServerCollection {
   }
 }
 
-class ServerNameAlreadyExistsError extends CustomError {
-  public error_name: string = "ServerNameAlreadyExistsError";
-  public constructor(occurrredInFilename: string, occurredInFunction: string) {
-    super("Cannot Call Function, Server Name Supplied Already In Use", occurredInFunction, occurrredInFilename);
-  }
-}
-
-class PortAlreadyInUseError extends CustomError {
-  public error_name: string = "PortInUseError";
-  public constructor(occurrredInFilename: string, occurredInFunction: string) {
-    super("Cannot Call Function, Port Supplied Already In Use", occurredInFunction, occurrredInFilename);
-  }
-}
-
 export default ExpressHttpServerCollection;
-export { ExpressHttpServerCollection, ServerNameAlreadyExistsError, PortAlreadyInUseError };
+export { ExpressHttpServerCollection };
