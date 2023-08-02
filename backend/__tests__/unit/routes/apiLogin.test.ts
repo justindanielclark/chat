@@ -1,5 +1,5 @@
 import request from "supertest";
-import app from "../../../services/app";
+import app from "../../../src/services/express-app/app";
 
 describe("/api/login", () => {
   //TODO
