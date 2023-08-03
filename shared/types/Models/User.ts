@@ -1,15 +1,17 @@
-type User = {
+interface User {
   id: number; //PK
   username: string;
   password: string;
-  security_question__1_id: string; //FK
+  profile: string;
+  security_question_1_id: number; //FK
   security_answer_1: string;
-  security_question__2_id: string; //FK
+  security_question_2_id: number; //FK
   security_answer_2: string;
-  security_question__3_id: string; //FK
+  security_question_3_id: number; //FK
   security_answer_3: string;
-  join_date: Date;
-  last_login: Date;
-};
+  currently_online: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export default User;

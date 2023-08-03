@@ -1,9 +1,9 @@
-type Chatroom = {
+interface Chatroom {
   id: number; //PK
   name: string;
   creator_id: number; //FK: user.id
-  last_use: Date;
-  creation_date: Date;
-};
+  createdAt: Date;
+  updatedAt: Date;
+}
 
 export default Chatroom;
