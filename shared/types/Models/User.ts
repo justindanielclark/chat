@@ -2,7 +2,7 @@ interface User {
   id: number; //PK
   username: string;
   password: string;
-  profile: string;
+  profile?: string;
   security_question_1_id: number; //FK
   security_answer_1: string;
   security_question_2_id: number; //FK
