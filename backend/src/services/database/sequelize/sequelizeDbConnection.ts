@@ -24,7 +24,7 @@ import ChatroomDatabase from "../../../../types/database/ChatroomDatabase";
 import DatabaseNotInitializedError from "../../../utils/errors/DatabaseNotInitializedError";
 
 class SequelizeDbConnection {
-  private static _instance: SequelizeDatabase;
+  private static _instance: SequelizeDatabase | null;
   private constructor() {
     //Empty, never intended to be called;
   }
@@ -35,6 +35,12 @@ class SequelizeDbConnection {
     await SequelizeDbConnection._instance.initialize();
     return SequelizeDbConnection._instance;
   }
+  public static clearInstance(): void {
+    if (this._instance) {
+      this._instance.close();
+    }
+    this._instance = null;
+  }
 }
 
 class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
@@ -43,8 +49,14 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
   public constructor() {
     const db = {
       database: (() => {
-        if (process.env.MYSQL_DATABASE_NAME) {
-          return process.env.MYSQL_DATABASE_NAME;
+        if (process.env.NODE_ENV === "production") {
+          if (process.env.MYSQL_DATABASE_NAME) {
+            return process.env.MYSQL_DATABASE_NAME;
+          }
+        } else {
+          if (process.env.TEST_MYSQL_DATABASE_NAME) {
+            return process.env.TEST_MYSQL_DATABASE_NAME;
+          }
         }
         throw new ProcessEnvNotConfiguredError("sequelizeDBConnection.ts", "setting sequelize database name");
       })(),
@@ -85,8 +97,8 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
   }
   public async initialize(): Promise<void> {
     defineBaseModels(this._sequelize);
-    // await syncAllModels(this._sequelize);
     await this._sequelize.authenticate();
+    await syncAllModels(this._sequelize);
     this._isInitialized = true;
 
     function defineBaseModels(sequelize: Sequelize): void {
@@ -211,12 +223,15 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
         { timestamps: false },
       );
     }
+    //! Need to add method to query Chatrooms and define out their models to add dynamic ones.
     async function syncAllModels(sequelize: Sequelize): Promise<void> {
+      const force = process.env.NODE_ENV !== "production";
       const promises: Array<Promise<Model<any, any>>> = [];
       for (let model in sequelize.models) {
-        promises.push(sequelize.models[model].sync());
+        promises.push(sequelize.models[model].sync({ force }));
       }
       await Promise.all(promises);
+      return;
     }
   }
   public async close(): Promise<void> {
@@ -481,4 +496,5 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
   }
 }
 
+export { SequelizeDatabase, SequelizeDbConnection };
 export default SequelizeDbConnection;
