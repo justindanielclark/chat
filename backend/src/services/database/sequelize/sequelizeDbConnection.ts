@@ -230,7 +230,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
       throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "createUser()");
     }
     try {
-      const newUser = await this._sequelize.models.User.create({ ...user });
+      const newUser = await this._sequelize.models["User"].create({ ...user });
       const returnValue = { ...newUser.dataValues } as User;
       return {
         success: true,
@@ -245,7 +245,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
   }
   public async retrieveUserById(id: number): Promise<DatabaseActionResultWithReturnValue<User>> {
     if (!this._isInitialized) {
-      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "createUser()");
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "retrieveUserById()");
     }
     try {
       const foundUser = await this._sequelize.models["User"].findOne({ where: { id } });
@@ -268,7 +268,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
   }
   public async retrieveUserByUsername(username: string): Promise<DatabaseActionResultWithReturnValue<User>> {
     if (!this._isInitialized) {
-      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "createUser()");
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "retreiveUserByUsername()");
     }
     try {
       const foundUser = await this._sequelize.models["User"].findOne({ where: { username } });
@@ -289,7 +289,13 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
       };
     }
   }
+  /**
+   * Note: Before calling, consumer will need to verify the existance of said user, modify it, and pass it back
+   */
   public async updateUser(user: User): Promise<DatabaseActionResultWithReturnValue<User>> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "updateUser()");
+    }
     try {
       const updatedUser = await this._sequelize.models["User"].update({ ...user }, { where: { id: user.id } });
       return {
@@ -304,6 +310,9 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
     }
   }
   public async deleteUserById(id: number): Promise<DatabaseActionResult> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "deleteUserById()");
+    }
     try {
       const result = await this._sequelize.models["User"].destroy({ where: { id } });
       if (result === 1) {
@@ -323,6 +332,9 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
     }
   }
   public async deleteUserByUsername(username: string): Promise<DatabaseActionResult> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "deleteUserByUsername()");
+    }
     try {
       const result = await this._sequelize.models["User"].destroy({ where: { username } });
       if (result === 1) {
@@ -341,9 +353,96 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase {
       };
     }
   }
-
   //ChatroomDatabase
-  public async createChatroom() {}
+  public async createChatroom(
+    chatroom: Omit<Chatroom, "id" | "createdAt" | "updatedAt">,
+  ): Promise<DatabaseActionResultWithReturnValue<Chatroom>> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "createChatroo,()");
+    }
+    try {
+      const newChatroom = await this._sequelize.models["Chatroom"].create({ ...chatroom });
+      const returnValue = { ...newChatroom.dataValues } as Chatroom;
+      return {
+        success: true,
+        value: returnValue,
+      };
+    } catch {
+      return {
+        success: false,
+        error: true,
+      };
+    }
+  }
+  public async retrieveChatroomById(id: number): Promise<DatabaseActionResultWithReturnValue<Chatroom>> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "retreiveChatroomById()");
+    }
+    try {
+      const foundChatroom = await this._sequelize.models["Chatroom"].findOne({ where: { id } });
+      if (foundChatroom) {
+        return {
+          success: true,
+          value: foundChatroom.dataValues,
+        };
+      }
+      return {
+        success: false,
+        error: false,
+      };
+    } catch {
+      return {
+        success: false,
+        error: true,
+      };
+    }
+  }
+  /**
+   * Note: Before calling, consumer will need to verify the existance of said chatroom, modify it, and pass it back
+   */
+  public async updateChatroom(chatroom: Chatroom): Promise<DatabaseActionResultWithReturnValue<Chatroom>> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "updateChatroom()");
+    }
+    try {
+      const updatedChatroom = await this._sequelize.models["User"].update(
+        { ...chatroom },
+        { where: { id: chatroom.id } },
+      );
+      return {
+        success: true,
+        value: { ...chatroom },
+      };
+    } catch {
+      return {
+        success: false,
+        error: true,
+      };
+    }
+  }
+  public async deleteChatroomById(id: number): Promise<DatabaseActionResult> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "deleteChatroomById()");
+    }
+    try {
+      const result = await this._sequelize.models["Chatroom"].destroy({ where: { id } });
+      if (result === 1) {
+        return {
+          success: true,
+        };
+      }
+      return {
+        success: false,
+        error: false,
+      };
+    } catch {
+      return {
+        success: false,
+        error: true,
+      };
+    }
+  }
+
   //! Incomplete - To Finish later
   public async createNewChatroomMessagesTable(tableName: string): Promise<void> {
     const newTable = this._sequelize.define<ChatroomMessageScehma>(
