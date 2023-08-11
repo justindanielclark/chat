@@ -5,9 +5,6 @@ import {
 } from "../../../../../src/services/database/sequelize/sequelizeDbConnection";
 import User from "../../../../../../shared/types/Models/User";
 import Chatroom from "../../../../../../shared/types/Models/Chatroom";
-import ChatroomSubscription from "../../../../../../shared/types/Models/ChatroomSubscription";
-import ChatroomMessage from "../../../../../../shared/types/Models/ChatroomMessage";
-import SecurityQuestion from "../../../../../../shared/types/Models/SecurityQuestion";
 
 dotenv.config();
 
@@ -222,7 +219,7 @@ describe("sequelizeDBConnection", () => {
           const newChatroom = newChatroomReturn.value;
           expect(newChatroom.createdAt instanceof Date).toBe(true);
           expect(newChatroom.updatedAt instanceof Date).toBe(true);
-          expect(typeof newChatroom.id).toBe("Number");
+          expect(typeof newChatroom.id).toBe("number");
           expect(newChatroom.name).toBe(test_chatroom.name);
           expect(newChatroom.creator_id).toBe(test_chatroom.creator_id);
         }
@@ -276,5 +273,51 @@ describe("sequelizeDBConnection", () => {
       });
     });
     // describe("deleteChatroomById", () => {});
+  });
+  describe("-Security Question Database-", () => {
+    const newQuestion = "What is a test value?";
+    describe("createSecurityQuestion()", () => {
+      it("Takes in a question string and returns a full Security Question", async () => {
+        const result = await instance.createSecurityQuestion({ question: newQuestion });
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const newQuestion = result.value;
+          expect(newQuestion.id).toBeGreaterThan(0);
+          expect(newQuestion.question).toEqual(newQuestion);
+        }
+      });
+    });
+    describe("retrieveAllSecurityQuestions()", () => {
+      it("returns an array of length greater than 0. All objects ought be security questions", async () => {
+        const query = await instance.retrieveAllSecurityQuestions();
+        expect(query.success).toBe(true);
+        if (query.success) {
+          const { value } = query;
+          expect(Array.isArray(value)).toBe(true);
+          expect(value.length).toBeGreaterThan(0);
+          value.forEach((val) => {
+            expect(typeof val.id).toBe("number");
+            expect(typeof val.question).toBe("string");
+          });
+        }
+      });
+    });
+    describe("retrieveSecurityQuestionById()", () => {
+      it("Is able to take in a question id and return it", async () => {
+        const returnedQuestion = await instance.retrieveSecurityQuestionById(1);
+        expect(returnedQuestion.success).toBe(true);
+        if (returnedQuestion.success) {
+          const returnedValue = returnedQuestion.value;
+          expect(typeof returnedValue.question).toBe("string");
+        }
+      });
+      it("Is able to take in an invalid id and return {success:false, error: false}", async () => {
+        const returnedQuestion = await instance.retrieveSecurityQuestionById(10000);
+        expect(returnedQuestion.success).toBe(false);
+        if (!returnedQuestion.success) {
+          expect(returnedQuestion.error).toBe(false);
+        }
+      });
+    });
   });
 });

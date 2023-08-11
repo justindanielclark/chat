@@ -1,13 +1,4 @@
-import {
-  Sequelize,
-  DataTypes,
-  Model,
-  where,
-  ModelCtor,
-  ModelStatic,
-  InferAttributes,
-  InferCreationAttributes,
-} from "sequelize";
+import { Sequelize, DataTypes, Model, ModelStatic } from "sequelize";
 import ProcessEnvNotConfiguredError from "../../../utils/errors/ProcessEnvNotConfiguredError";
 import {
   DatabaseActionResult,
@@ -37,6 +28,10 @@ import SecurityQuestionDatabase from "../../../../types/database/SecurityQuestio
 
 // Errors
 import DatabaseNotInitializedError from "../../../utils/errors/DatabaseNotInitializedError";
+import { SecurityQuestionInput } from "../../../../types/database/sequelize/Inputs/SecurityQuestionInput";
+
+//Table Seeds
+import seedSecurityQuestions from "./seedSecurityQuestions";
 
 class SequelizeDbConnection {
   private static _instance: SequelizeDatabase | null;
@@ -240,11 +235,14 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
     }
     //! Need to add method to query Chatrooms and define out their models to add dynamic ones.
     async function syncAllModels(sequelize: Sequelize): Promise<void> {
-      const force = process.env.NODE_ENV !== "production";
+      const isDev = process.env.NODE_ENV !== "production";
       const promises = [];
       for (let model in sequelize.models) {
-        promises.push(sequelize.models[model].sync({ force }));
+        promises.push(sequelize.models[model].sync({ force: isDev }));
       }
+      // if (isDev) {
+      //   await seedSecurityQuestions();
+      // }
       await Promise.all(promises);
       return;
     }
@@ -469,7 +467,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
   }
 
   // SecurityQuestionDatabase
-  private securityQuestionModel(): ModelStatic<Model<SecurityQuestion, SecurityQuestion>> {
+  private securityQuestionModel(): ModelStatic<Model<SecurityQuestion, SecurityQuestionInput>> {
     if (!this._isInitialized) {
       throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "securityQuestionModel()");
     }
@@ -478,6 +476,20 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       return model;
     }
     throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "securityQuestionModel()");
+  }
+  public async createSecurityQuestion(
+    question: SecurityQuestionInput,
+  ): Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>> {
+    const securityQuestionModel = this.securityQuestionModel();
+    try {
+      const result = await securityQuestionModel.create(question);
+      return {
+        success: true,
+        value: result.dataValues,
+      };
+    } catch {
+      return { success: false, error: true };
+    }
   }
   public async retrieveAllSecurityQuestions(): Promise<DatabaseActionResultWithReturnValue<SecurityQuestion[]>> {
     const securityQuestionModel = this.securityQuestionModel();
