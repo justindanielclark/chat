@@ -31,7 +31,7 @@ import DatabaseNotInitializedError from "../../../utils/errors/DatabaseNotInitia
 import { SecurityQuestionInput } from "../../../../types/database/sequelize/Inputs/SecurityQuestionInput";
 
 //Table Seeds
-import seedSecurityQuestions from "./seedSecurityQuestions";
+import securityQuestions from "../../../data/securityQuestions";
 
 class SequelizeDbConnection {
   private static _instance: SequelizeDatabase | null;
@@ -106,10 +106,20 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
     });
   }
   public async initialize(): Promise<void> {
+    const isDev = process.env.NODE_ENV !== "production";
     defineBaseModels(this._sequelize);
     await this._sequelize.authenticate();
-    await syncAllModels(this._sequelize);
+    //SYNC MODELS
+    const promises = [];
+    for (let model in this._sequelize.models) {
+      promises.push(this._sequelize.models[model].sync({ force: isDev }));
+    }
+    await Promise.all(promises);
     this._isInitialized = true;
+    //SEED IF NEEDED
+    if (isDev) {
+      Promise.all(securityQuestions.map((question) => this.createSecurityQuestion(question)));
+    }
 
     function defineBaseModels(sequelize: Sequelize): void {
       sequelize.define<UserSchema>("User", {
@@ -232,19 +242,6 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         },
         { timestamps: false },
       );
-    }
-    //! Need to add method to query Chatrooms and define out their models to add dynamic ones.
-    async function syncAllModels(sequelize: Sequelize): Promise<void> {
-      const isDev = process.env.NODE_ENV !== "production";
-      const promises = [];
-      for (let model in sequelize.models) {
-        promises.push(sequelize.models[model].sync({ force: isDev }));
-      }
-      // if (isDev) {
-      //   await seedSecurityQuestions();
-      // }
-      await Promise.all(promises);
-      return;
     }
   }
   public async close(): Promise<void> {
