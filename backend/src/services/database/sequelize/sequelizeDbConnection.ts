@@ -1,4 +1,4 @@
-import { Sequelize, DataTypes, Model, ModelStatic } from "sequelize";
+import { Sequelize, DataTypes, Model, ModelStatic, UniqueConstraintError, ValidationError } from "sequelize";
 import ProcessEnvNotConfiguredError from "../../../utils/errors/ProcessEnvNotConfiguredError";
 import {
   DatabaseActionResult,
@@ -9,10 +9,12 @@ import {
 import User from "../../../../../shared/types/Models/User";
 import Chatroom from "../../../../../shared/types/Models/Chatroom";
 import SecurityQuestion from "../../../../../shared/types/Models/SecurityQuestion";
+import ChatroomMessage from "../../../../../shared/types/Models/ChatroomMessage";
 
 //Input Types
 import { UserInput } from "../../../../types/database/sequelize/Inputs/UserInput";
 import { ChatroomInput } from "../../../../types/database/sequelize/Inputs/ChatroomInput";
+import { ChatroomMessageInput } from "../../../../types/database/sequelize/Inputs/ChatroomMessageInput";
 
 // Table Schemas
 import UserSchema from "../../../../types/database/sequelize/Schemas/UserSchema";
@@ -132,6 +134,14 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         username: {
           type: DataTypes.STRING,
           allowNull: false,
+          unique: true,
+          validate: {
+            // - At least 5 chars long
+            // - No longer than 20 chars
+            // - starts with an alphabetic character
+            // - contains at least 3 alphabetic characters
+            is: /^(?=[a-zA-Z])(?=.*[a-zA-Z].*[a-zA-Z].*[a-zA-Z]).{5,20}$/,
+          },
         },
         profile: {
           type: DataTypes.TEXT,
@@ -140,6 +150,14 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         password: {
           type: DataTypes.STRING,
           allowNull: false,
+          validate: {
+            // - Contains a capital letter
+            // - Contains a lowercase letter
+            // - Contains 1 special character from the following: !@#$%^&*()-_=+{[}]|\:;"'<,>.?/
+            // - Is At least 5 characters long
+            // - Is no longer than 20 characters
+            is: /^(?=.*[A-Z])(?=.*[a-z])(?=.*[!@#$%^&*()\[\]{}|\\:;"'<,>.?/=_+]).{5,20}$/,
+          },
         },
         currently_online: {
           type: DataTypes.BOOLEAN,
@@ -192,6 +210,10 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         name: {
           type: DataTypes.STRING,
           allowNull: false,
+          unique: true,
+          validate: {
+            is: /^(?=.*[a-zA-Z]).{5,20}$/,
+          },
         },
         creator_id: {
           type: DataTypes.INTEGER.UNSIGNED,
@@ -266,10 +288,21 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         success: true,
         value: returnVal.dataValues,
       };
-    } catch {
+    } catch (err) {
+      if (err instanceof UniqueConstraintError) {
+        return {
+          success: false,
+          failure_id: 1,
+        };
+      } else if (err instanceof ValidationError) {
+        return {
+          success: false,
+          failure_id: 2,
+        };
+      }
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -285,12 +318,12 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       }
       return {
         success: false,
-        error: false,
+        failure_id: 3,
       };
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -306,12 +339,12 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       }
       return {
         success: false,
-        error: false,
+        failure_id: 3,
       };
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -327,10 +360,16 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         success: true,
         value: { ...user },
       };
-    } catch {
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return {
+          success: false,
+          failure_id: 2,
+        };
+      }
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -345,12 +384,12 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       }
       return {
         success: false,
-        error: false,
+        failure_id: 3,
       };
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -365,12 +404,12 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       }
       return {
         success: false,
-        error: false,
+        failure_id: 3,
       };
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -395,10 +434,21 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         success: true,
         value: returnValue,
       };
-    } catch {
+    } catch (err) {
+      if (err instanceof UniqueConstraintError) {
+        return {
+          success: false,
+          failure_id: 5,
+        };
+      } else if (err instanceof ValidationError) {
+        return {
+          success: false,
+          failure_id: 4,
+        };
+      }
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -414,12 +464,34 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       }
       return {
         success: false,
-        error: false,
+        failure_id: 6,
       };
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
+      };
+    }
+  }
+  public async retreiveAllChatrooms(): Promise<DatabaseActionResultWithReturnValue<Chatroom[]>> {
+    const chatroomModel = this.chatroomModel();
+    try {
+      const chatrooms = await chatroomModel.findAll();
+      if (chatrooms) {
+        const values = chatrooms.map((room) => room.dataValues);
+        return {
+          success: true,
+          value: values,
+        };
+      }
+      return {
+        success: false,
+        failure_id: 6,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: 0,
       };
     }
   }
@@ -438,7 +510,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -453,12 +525,12 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       }
       return {
         success: false,
-        error: false,
+        failure_id: 6,
       };
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -485,7 +557,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         value: result.dataValues,
       };
     } catch {
-      return { success: false, error: true };
+      return { success: false, failure_id: 0 };
     }
   }
   public async retrieveAllSecurityQuestions(): Promise<DatabaseActionResultWithReturnValue<SecurityQuestion[]>> {
@@ -500,7 +572,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
@@ -518,52 +590,17 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
       }
       return {
         success: false,
-        error: false,
+        failure_id: 7,
       };
     } catch {
       return {
         success: false,
-        error: true,
+        failure_id: 0,
       };
     }
   }
 
-  //! Incomplete - To Finish later
-  public async createNewChatroomMessagesTable(tableName: string): Promise<void> {
-    const newTable = this._sequelize.define<ChatroomMessageScehma>(
-      tableName,
-      {
-        id: {
-          type: DataTypes.INTEGER.UNSIGNED,
-          autoIncrement: true,
-          primaryKey: true,
-          allowNull: false,
-        },
-        user_id: {
-          type: DataTypes.INTEGER.UNSIGNED,
-          allowNull: false,
-        },
-        content: {
-          type: DataTypes.TEXT,
-          allowNull: false,
-        },
-        createdAt: {
-          type: DataTypes.DATE,
-          allowNull: false,
-        },
-        updatedAt: {
-          type: DataTypes.DATE,
-          allowNull: true,
-          defaultValue: null,
-        },
-      },
-      {
-        timestamps: true,
-      },
-    );
-    await newTable.sync();
-    //! CREATE NEW TABLE IN CHATROOMS USING METHOD IN HERE
-  }
+  // ChatMessageDatabase
 }
 
 export { SequelizeDatabase, SequelizeDbConnection };

@@ -4,6 +4,7 @@ import { DatabaseActionResult, DatabaseActionResultWithReturnValue } from "./Dat
 interface ChatroomDatabase {
   createChatroom: (chatroom: Omit<Chatroom, "id">) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
   retrieveChatroomById: (id: number) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
+  retreiveAllChatrooms: () => Promise<DatabaseActionResultWithReturnValue<Array<Chatroom>>>;
   updateChatroom: (chatroom: Chatroom) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
   deleteChatroomById: (id: number) => Promise<DatabaseActionResult>;
 }

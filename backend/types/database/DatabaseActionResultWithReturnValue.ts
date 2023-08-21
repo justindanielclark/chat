@@ -4,7 +4,7 @@ type DatabaseActionResult =
     }
   | {
       success: false;
-      error: boolean;
+      failure_id: number;
     };
 
 type DatabaseActionResultWithReturnValue<T> =
@@ -14,7 +14,7 @@ type DatabaseActionResultWithReturnValue<T> =
     }
   | {
       success: false;
-      error: boolean;
+      failure_id: number;
     };
 
 export { DatabaseActionResult, DatabaseActionResultWithReturnValue };
