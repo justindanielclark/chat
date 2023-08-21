@@ -2,3 +2,4 @@
 backend/_backend_build
 backend/_frontend_build
 backend/.env
+test.js
