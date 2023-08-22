@@ -6,7 +6,7 @@ interface ChatroomSchema
     Model<InferAttributes<ChatroomSchema>, InferCreationAttributes<ChatroomSchema>> {
   id: CreationOptional<number>;
   name: string;
-  creator_id: number;
+  // creator_id: number;
   createdAt: CreationOptional<Date>;
   updatedAt: CreationOptional<Date>;
 }

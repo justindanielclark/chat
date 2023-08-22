@@ -6,6 +6,7 @@ interface ChatroomMessageScehma
     Model<InferAttributes<ChatroomMessageScehma>, InferCreationAttributes<ChatroomMessageScehma>> {
   id: CreationOptional<number>;
   user_id: number;
+  chatroom_id: number;
   content: string;
   createdAt: CreationOptional<Date>;
   updatedAt: CreationOptional<Date>;
