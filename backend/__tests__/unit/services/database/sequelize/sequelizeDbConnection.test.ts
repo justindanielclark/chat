@@ -5,6 +5,8 @@ import {
 } from "../../../../../src/services/database/sequelize/sequelizeDbConnection";
 import User from "../../../../../../shared/types/Models/User";
 import Chatroom from "../../../../../../shared/types/Models/Chatroom";
+import ChatroomMessage from "../../../../../../shared/types/Models/ChatroomMessage";
+import { ChatroomMessageInput } from "../../../../../types/database/sequelize/Inputs/ChatroomMessageInput";
 
 dotenv.config();
 
@@ -76,6 +78,11 @@ const test_chatroom_2: Chatroom = {
   creator_id: 1,
   createdAt: new Date(),
   updatedAt: new Date(),
+};
+const test_chatroom_message: ChatroomMessageInput = {
+  user_id: 1,
+  chatroom_id: 1,
+  content: "some content",
 };
 
 describe("sequelizeDBConnection", () => {
@@ -396,4 +403,18 @@ describe("sequelizeDBConnection", () => {
       });
     });
   });
+  // describe("-ChatroomMessage Database-", () => {
+  //   describe("createChatroomMessage()", () => {
+  //     it("is able to create a chatroom message when providing a valid ChatroomMessageInput", async () => {
+  //       const result = await instance.createChatroomMessage(test_chatroom_message);
+  //       expect(result.success).toBe(true);
+  //       if(result.success){
+
+  //       }
+  //     });
+  //     it("returns {success: false, failure_id: 9} when the provided chatroom message is empty", async () => {});
+  //     it("returns {success: false, failure_id: 6} when the provided chatroom message is empty", async () => {});
+  //   });
+  //   describe("", () => {});
+  // });
 });

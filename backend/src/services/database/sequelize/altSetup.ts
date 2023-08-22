@@ -75,173 +75,396 @@ const sequelize = new Sequelize(db.database, db.username, db.password, {
   dialect: "mysql",
 });
 
-class User extends Model<
-  InferAttributes<User, { omit: "chatrooms" }>,
-  InferCreationAttributes<User, { omit: "chatrooms" }>
-> {
-  declare id: CreationOptional<number>;
-  declare name: string;
-  declare password: string;
-  declare createdAt: CreationOptional<Date>;
-  declare updatedAt: CreationOptional<Date>;
-  declare is_active: CreationOptional<boolean>;
-  declare is_online: CreationOptional<boolean>;
+function setup(sequelize: Sequelize) {
+  class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
+    declare id: CreationOptional<number>;
+    declare name: string;
+    declare password: string;
+    declare createdAt: CreationOptional<Date>;
+    declare updatedAt: CreationOptional<Date>;
+    declare is_active: CreationOptional<boolean>;
+    declare is_online: CreationOptional<boolean>;
 
-  declare getChatrooms: HasManyGetAssociationsMixin<Chatroom>; // Note the null assertions!
-  declare addChatroom: HasManyAddAssociationMixin<Chatroom, number>;
-  declare addChatrooms: HasManyAddAssociationsMixin<Chatroom, number>;
-  declare setChatrooms: HasManySetAssociationsMixin<Chatroom, number>;
-  declare removeChatroom: HasManyRemoveAssociationMixin<Chatroom, number>;
-  declare removeChatrooms: HasManyRemoveAssociationsMixin<Chatroom, number>;
-  declare hasChatroom: HasManyHasAssociationMixin<Chatroom, number>;
-  declare hasChatrooms: HasManyHasAssociationsMixin<Chatroom, number>;
-  declare countChatrooms: HasManyCountAssociationsMixin;
-  declare createChatroom: HasManyCreateAssociationMixin<Chatroom, "ownerId">;
-  declare getChatroomSubscriptions: HasManyGetAssociationsMixin<ChatroomSubscription>;
+    declare createChatroom: HasManyCreateAssociationMixin<Chatroom, "ownerId">;
+    declare getChatrooms: HasManyGetAssociationsMixin<Chatroom>; // Note the null assertions!
+    declare getChatroomSubscriptions: HasManyGetAssociationsMixin<ChatroomSubscription>;
 
-  declare chatrooms?: NonAttribute<Chatroom[]>;
+    declare chatrooms?: NonAttribute<Chatroom[]>;
+    declare chatroomSubscriptions?: NonAttribute<ChatroomSubscription[]>;
+    declare chatroomMessages?: NonAttribute<ChatroomMessage[]>;
+    declare securityQuestionAnswers?: NonAttribute<SecurityQuestionAnswer[]>;
+    declare chatroomAdmins?: NonAttribute<ChatroomAdmin[]>;
+    declare chatroomBans?: NonAttribute<ChatroomBan[]>;
 
-  declare static associations: {
-    chatrooms: Association<User, Chatroom>;
-    chatroomSubscriptions: Association<User, ChatroomSubscription>;
-  };
-}
-class Chatroom extends Model<InferAttributes<Chatroom>, InferCreationAttributes<Chatroom>> {
-  declare id: CreationOptional<number>;
-  declare ownerId: ForeignKey<User["id"]>;
-  declare name: string;
-  declare password: string | null;
-  declare createdAt: CreationOptional<Date>;
-  declare updatedAt: CreationOptional<Date>;
+    declare static associations: {
+      chatrooms: Association<User, Chatroom>;
+      chatroomSubscriptions: Association<User, ChatroomSubscription>;
+      chatroomMessages: Association<User, ChatroomMessage>;
+      securityQuestionAnswers: Association<User, SecurityQuestionAnswer>;
+      chatroomAdmins: Association<User, ChatroomAdmin>;
+      chatroomBans: Association<User, ChatroomBan>;
+    };
+  }
+  class Chatroom extends Model<InferAttributes<Chatroom>, InferCreationAttributes<Chatroom>> {
+    declare id: CreationOptional<number>;
+    // declare ownerId: ForeignKey<User["id"]>;
+    declare ownerId: number;
+    declare name: string;
+    declare password: string | null;
+    declare createdAt: CreationOptional<Date>;
+    declare updatedAt: CreationOptional<Date>;
 
-  declare owner?: NonAttribute<User>;
+    declare owner?: NonAttribute<User>;
+    declare chatroomMessages?: NonAttribute<ChatroomMessage[]>;
+    declare chatroomAdmins?: NonAttribute<ChatroomAdmin[]>;
+    declare chatroomBans?: NonAttribute<ChatroomBan[]>;
 
-  declare static associations: {
-    chatroomSubscriptions: Association<Chatroom, ChatroomSubscription>;
-  };
-}
-class ChatroomSubscription extends Model<
-  InferAttributes<ChatroomSubscription>,
-  InferCreationAttributes<ChatroomSubscription>
-> {
-  declare id: CreationOptional<number>;
-  declare userId: ForeignKey<User["id"]>;
-  declare chatroomId: ForeignKey<Chatroom["id"]>;
+    declare getChatroomMessages: HasManyGetAssociationsMixin<ChatroomMessage>;
 
-  declare user?: NonAttribute<User>;
-  declare chatroom?: NonAttribute<Chatroom>;
-}
+    declare static associations: {
+      chatroomSubscriptions: Association<Chatroom, ChatroomSubscription>;
+      chatroomMessages: Association<Chatroom, ChatroomMessage>;
+      chatroomAdmins: Association<Chatroom, ChatroomAdmin>;
+      chatroomBans: Association<Chatroom, ChatroomBan>;
+    };
+  }
+  class ChatroomAdmin extends Model<InferAttributes<ChatroomAdmin>, InferCreationAttributes<ChatroomAdmin>> {
+    declare userId: number;
+    declare chatroomId: number;
+    declare user?: NonAttribute<User>;
+    declare chatroom?: NonAttribute<Chatroom>;
+  }
+  class ChatroomSubscription extends Model<
+    InferAttributes<ChatroomSubscription>,
+    InferCreationAttributes<ChatroomSubscription>
+  > {
+    // declare userId: ForeignKey<User["id"]>;
+    // declare chatroomId: ForeignKey<Chatroom["id"]>;
+    declare userId: number;
+    declare chatroomId: number;
+    declare user?: NonAttribute<User>;
+    declare chatroom?: NonAttribute<Chatroom>;
+  }
+  class ChatroomBan extends Model<InferAttributes<ChatroomBan>, InferCreationAttributes<ChatroomBan>> {
+    declare userId: number;
+    declare chatroomId: number;
+    declare user?: NonAttribute<User>;
+    declare chatroom?: NonAttribute<Chatroom>;
+  }
+  class ChatroomMessage extends Model<InferAttributes<ChatroomMessage>, InferCreationAttributes<ChatroomMessage>> {
+    declare id: CreationOptional<number>;
+    declare content: string;
+    declare createdAt: CreationOptional<Date>;
+    declare updatedAt: CreationOptional<Date>;
+    // declare userId: ForeignKey<User["id"]>;
+    // declare chatroomId: ForeignKey<Chatroom["id"]>;
+    declare userId: number;
+    declare chatroomId: number;
 
-User.init(
-  {
-    id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    is_active: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    is_online: {
-      type: DataTypes.BOOLEAN,
-      defaultValue: true,
-    },
-    createdAt: DataTypes.DATE,
-    updatedAt: DataTypes.DATE,
-  },
-  { sequelize, timestamps: true, tableName: "users" },
-);
-Chatroom.init(
-  {
-    id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-    name: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
-    password: {
-      type: DataTypes.STRING,
-      allowNull: true,
-    },
-    createdAt: DataTypes.DATE,
-    updatedAt: DataTypes.DATE,
-  },
-  { sequelize, timestamps: true, tableName: "chatrooms" },
-);
-ChatroomSubscription.init(
-  {
-    id: {
-      type: DataTypes.INTEGER.UNSIGNED,
-      autoIncrement: true,
-      primaryKey: true,
-    },
-  },
-  { sequelize, timestamps: false, tableName: "chatroomSubscriptions" },
-);
-
-User.hasMany(Chatroom, {
-  sourceKey: "id",
-  foreignKey: "ownerId",
-  as: "chatrooms",
-});
-User.hasMany(ChatroomSubscription, {
-  sourceKey: "id",
-  foreignKey: "userId",
-  as: "chatroomSubscriptions",
-});
-Chatroom.hasMany(ChatroomSubscription, {
-  sourceKey: "id",
-  foreignKey: "chatroomId",
-  as: "chatroomSubscriptions",
-});
-
-(async () => {
-  await sequelize.sync({ force: true });
-  const newUser = await User.create({
-    name: "test_user",
-    password: "test_password",
-  });
-  const newUser2 = await User.create({
-    name: "test_user2",
-    password: "test_password2",
-  });
-  const newChatroom = await newUser.createChatroom({
-    name: "cool_chatroom_1",
-  });
-  const newChatroom2 = await newUser.createChatroom({
-    name: "cool_chatroom_2",
-  });
-  const newChatroom3 = await newUser.createChatroom({
-    name: "cool_chatroom_3",
-  });
-
-  const chatroomSub = await ChatroomSubscription.create({
-    chatroomId: newChatroom.id,
-    userId: newUser.id,
-  });
-  console.log(await newUser.getChatroomSubscriptions());
-  //WILL THROW ERROR as ownerID is invalid
-  try {
-    const newChatroom4 = await Chatroom.create({
-      name: "a fun chatroom",
-      ownerId: 1203,
-    });
-  } catch (err) {
-    if (err instanceof ForeignKeyConstraintError) {
-    }
+    declare user?: NonAttribute<User>;
+    declare chatroom?: NonAttribute<Chatroom>;
+  }
+  class SecurityQuestion extends Model<InferAttributes<SecurityQuestion>, InferCreationAttributes<SecurityQuestion>> {
+    declare id: number;
+    declare question: string;
+  }
+  class SecurityQuestionAnswer extends Model<
+    InferAttributes<SecurityQuestionAnswer>,
+    InferCreationAttributes<SecurityQuestionAnswer>
+  > {
+    declare userId: number;
+    declare securityQuestionId: number;
+    declare answer: string;
+    declare user?: NonAttribute<User>;
+    declare securityQuestion?: NonAttribute<SecurityQuestion>;
   }
 
-  await sequelize.close();
-})();
+  //Model Initialization
+  User.init(
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      is_active: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
+      is_online: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+      },
+      createdAt: DataTypes.DATE,
+      updatedAt: DataTypes.DATE,
+    },
+    { sequelize, timestamps: true, tableName: "users" },
+  );
+  Chatroom.init(
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      ownerId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: User,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      name: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      password: {
+        type: DataTypes.STRING,
+        allowNull: true,
+      },
+      createdAt: DataTypes.DATE,
+      updatedAt: DataTypes.DATE,
+    },
+    { sequelize, timestamps: true, tableName: "chatrooms" },
+  );
+  ChatroomSubscription.init(
+    //Composite PK
+    {
+      userId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: User,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      chatroomId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: Chatroom,
+          key: "id",
+        },
+        allowNull: false,
+      },
+    },
+    { sequelize, timestamps: false, tableName: "chatroomSubscriptions" },
+  );
+  ChatroomBan.init(
+    {
+      userId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: User,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      chatroomId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: Chatroom,
+          key: "id",
+        },
+        allowNull: false,
+      },
+    },
+    { sequelize, timestamps: false, tableName: "chatroomBans" },
+  );
+  ChatroomMessage.init(
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      userId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: User,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      chatroomId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: Chatroom,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      content: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+      createdAt: DataTypes.DATE,
+      updatedAt: DataTypes.DATE,
+    },
+    { sequelize, timestamps: true, tableName: "chatroomMessages" },
+  );
+  ChatroomAdmin.init(
+    {
+      userId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: User,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      chatroomId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: Chatroom,
+          key: "id",
+        },
+        allowNull: false,
+      },
+    },
+    { sequelize, timestamps: false, tableName: "chatroomAdmins" },
+  );
+  SecurityQuestion.init(
+    {
+      id: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        autoIncrement: true,
+        primaryKey: true,
+      },
+      question: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+    },
+    { sequelize, timestamps: false, tableName: "securityQuestions" },
+  );
+  SecurityQuestionAnswer.init(
+    //Composite PK
+    {
+      userId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: User,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      securityQuestionId: {
+        type: DataTypes.INTEGER.UNSIGNED,
+        references: {
+          model: SecurityQuestion,
+          key: "id",
+        },
+        allowNull: false,
+      },
+      answer: {
+        type: DataTypes.STRING,
+        allowNull: false,
+      },
+    },
+    { sequelize, timestamps: false, tableName: "securityQuestionAnswers" },
+  );
+  //Model Associations
+  User.hasMany(Chatroom, {
+    sourceKey: "id",
+    foreignKey: "ownerId",
+    as: "chatrooms",
+  });
+  User.hasMany(ChatroomMessage, {
+    sourceKey: "id",
+    foreignKey: "userId",
+    as: "chatroomMessages",
+  });
+  User.belongsToMany(Chatroom, { through: ChatroomSubscription, as: "chatroomSubscriptions", foreignKey: "userId" });
+  User.belongsToMany(Chatroom, { through: ChatroomAdmin, as: "chatroomAdmins", foreignKey: "userId" });
+  User.belongsToMany(Chatroom, { through: ChatroomBan, as: "chatroomBans", foreignKey: "userId" });
+  User.belongsToMany(SecurityQuestion, {
+    through: SecurityQuestionAnswer,
+    as: "securityQuestionAnswers",
+    foreignKey: "userId",
+  });
+
+  Chatroom.hasMany(ChatroomMessage, {
+    sourceKey: "id",
+    foreignKey: "chatroomId",
+    as: "chatroomMessages",
+  });
+  Chatroom.belongsToMany(User, {
+    through: ChatroomSubscription,
+    as: "chatroomSubscriptions",
+    foreignKey: "chatroomId",
+  });
+  Chatroom.belongsToMany(User, { through: ChatroomAdmin, as: "chatroomAdmins", foreignKey: "chatroomId" });
+  Chatroom.belongsToMany(User, { through: ChatroomBan, as: "chatroomBans", foreignKey: "chatroomId" });
+
+  SecurityQuestion.belongsToMany(User, {
+    through: SecurityQuestionAnswer,
+    as: "securityQuestionAnswers",
+    foreignKey: "securityQuestionId",
+  });
+}
+
+// (async () => {
+//   await sequelize.sync({ force: true });
+//   //Create Users 1-3
+//   const newUser = await User.create({
+//     name: "test_user",
+//     password: "test_password",
+//   });
+//   const newUser2 = await User.create({
+//     name: "test_user2",
+//     password: "test_password2",
+//   });
+//   const newUser3 = await User.create({
+//     name: "test_user3",
+//     password: "test_password3",
+//   });
+//   //Create Chatroom
+//   const newChatroom = await Chatroom.create({
+//     name: "test_chatroom",
+//     ownerId: newUser.id,
+//   });
+//   //Have Users Subscribe
+//   const newSubscription = await ChatroomSubscription.create({
+//     chatroomId: newChatroom.id,
+//     userId: newUser.id,
+//   });
+//   const newSubscription2 = await ChatroomSubscription.create({
+//     chatroomId: newChatroom.id,
+//     userId: newUser2.id,
+//   });
+//   const newSubscription3 = await ChatroomSubscription.create({
+//     chatroomId: newChatroom.id,
+//     userId: newUser3.id,
+//   });
+//   //Create Some Chat Messages
+//   const newChatMessage1 = await ChatroomMessage.create({
+//     userId: newUser.id,
+//     chatroomId: newChatroom.id,
+//     content: "a message",
+//   });
+//   const newChatMessage2 = await ChatroomMessage.create({
+//     userId: newUser.id,
+//     chatroomId: newChatroom.id,
+//     content: "another message",
+//   });
+//   const newChatMessage3 = await ChatroomMessage.create({
+//     userId: newUser2.id,
+//     chatroomId: newChatroom.id,
+//     content: "another third message",
+//   });
+
+//   const messages = await newChatroom.getChatroomMessages();
+
+//   console.log(messages);
+
+//   await sequelize.close();
+// })();

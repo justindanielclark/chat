@@ -34,6 +34,7 @@ import { SecurityQuestionInput } from "../../../../types/database/sequelize/Inpu
 
 //Table Seeds
 import securityQuestions from "../../../data/securityQuestions";
+import ChatroomMessageDatabase from "../../../../types/database/ChatroomMessagesDatabase";
 
 class SequelizeDbConnection {
   private static _instance: SequelizeDatabase | null;
@@ -55,7 +56,7 @@ class SequelizeDbConnection {
   }
 }
 
-class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuestionDatabase {
+class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuestionDatabase, ChatroomMessageDatabase {
   private _sequelize: Sequelize;
   private _isInitialized: boolean;
   public constructor() {
@@ -124,7 +125,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
     }
 
     function defineBaseModels(sequelize: Sequelize): void {
-      sequelize.define<UserSchema>("User", {
+      const User = sequelize.define<UserSchema>("User", {
         id: {
           type: DataTypes.INTEGER.UNSIGNED,
           allowNull: false,
@@ -200,7 +201,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
           allowNull: false,
         },
       });
-      sequelize.define<ChatroomSchema>("Chatroom", {
+      const Chatroom = sequelize.define<ChatroomSchema>("Chatroom", {
         id: {
           type: DataTypes.INTEGER.UNSIGNED,
           allowNull: false,
@@ -228,7 +229,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
           allowNull: false,
         },
       });
-      sequelize.define<SecurityQuestionSchema>(
+      const SecurityQuestion = sequelize.define<SecurityQuestionSchema>(
         "SecurityQuestion",
         {
           id: {
@@ -244,7 +245,7 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         },
         { timestamps: false },
       );
-      sequelize.define<ChatroomSubscriptionSchema>(
+      const ChatroomSubscription = sequelize.define<ChatroomSubscriptionSchema>(
         "ChatroomSubscription",
         {
           id: {
@@ -264,6 +265,42 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
         },
         { timestamps: false },
       );
+      const ChatroomMessage = sequelize.define<ChatroomMessageScehma>("ChatroomMessage", {
+        id: {
+          type: DataTypes.INTEGER.UNSIGNED,
+          allowNull: false,
+          autoIncrement: true,
+          primaryKey: true,
+        },
+        user_id: {
+          type: DataTypes.INTEGER.UNSIGNED,
+          allowNull: false,
+        },
+        chatroom_id: {
+          type: DataTypes.INTEGER.UNSIGNED,
+          allowNull: false,
+        },
+        content: {
+          type: DataTypes.STRING,
+          allowNull: false,
+          validate: {
+            is: /^.+$/,
+          },
+        },
+        createdAt: {
+          type: DataTypes.DATE,
+          allowNull: false,
+        },
+        updatedAt: {
+          type: DataTypes.DATE,
+          allowNull: false,
+        },
+      });
+
+      User.hasMany(Chatroom, {
+        foreignKey: "creator_id",
+      });
+      Chatroom.belongsTo(User);
     }
   }
   public async close(): Promise<void> {
@@ -601,6 +638,124 @@ class SequelizeDatabase implements UserDatabase, ChatroomDatabase, SecurityQuest
   }
 
   // ChatMessageDatabase
+  private chatroomMessageModel(): ModelStatic<Model<ChatroomMessage, ChatroomMessageInput>> {
+    if (!this._isInitialized) {
+      throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "securityQuestionModel()");
+    }
+    const model = this._sequelize.models["ChatroomMessage"];
+    if (model) {
+      return model;
+    }
+    throw new DatabaseNotInitializedError("sequelizeDbConnection.ts", "securityQuestionModel()");
+  }
+  public async createChatroomMessage(
+    message: ChatroomMessageInput,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>> {
+    const chatroomMessageModel = this.chatroomMessageModel();
+    try {
+      const result = await chatroomMessageModel.create({ ...message });
+      return {
+        success: true,
+        value: result.dataValues,
+      };
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return {
+          success: false,
+          failure_id: 9,
+        };
+      }
+      return {
+        success: false,
+        failure_id: 0,
+      };
+    }
+  }
+  public async retreiveAllChatroomMessages(
+    chatroomID: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage[]>> {
+    const chatroomMessageModel = this.chatroomMessageModel();
+    try {
+      const result = await chatroomMessageModel.findAll({ where: { chatroom_id: chatroomID } });
+      const messages = result.map((r) => r.dataValues);
+      return {
+        success: true,
+        value: messages,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        failure_id: 0,
+      };
+    }
+  }
+  public async retreiveChatroomMessage(
+    messageID: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>> {
+    const chatroomMessageModel = this.chatroomMessageModel();
+    try {
+      const result = await chatroomMessageModel.findByPk(messageID);
+      if (result && result.dataValues) {
+        return {
+          success: true,
+          value: result.dataValues,
+        };
+      }
+      return {
+        success: false,
+        failure_id: 8,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        failure_id: 0,
+      };
+    }
+  }
+  public async updateChatroomMessage(
+    message: ChatroomMessage,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>> {
+    const chatroomMessageModel = this.chatroomMessageModel();
+    try {
+      message.updatedAt = new Date();
+      const updatedMessage = await chatroomMessageModel.update({ ...message }, { where: { id: message.id } });
+      return {
+        success: true,
+        value: { ...message },
+      };
+    } catch (err) {
+      if (err instanceof ValidationError) {
+        return {
+          success: false,
+          failure_id: 9,
+        };
+      }
+      return {
+        success: false,
+        failure_id: 0,
+      };
+    }
+  }
+  public async deleteChatroomMessage(messageID: number): Promise<DatabaseActionResult> {
+    const chatroomMessageModel = this.chatroomMessageModel();
+    try {
+      const result = await chatroomMessageModel.destroy({ where: { id: messageID } });
+      if (result === 1) {
+        return {
+          success: true,
+        };
+      }
+      return {
+        success: false,
+        failure_id: 8,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: 0,
+      };
+    }
+  }
 }
 
 export { SequelizeDatabase, SequelizeDbConnection };
