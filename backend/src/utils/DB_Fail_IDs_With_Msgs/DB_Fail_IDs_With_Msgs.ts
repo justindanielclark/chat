@@ -12,6 +12,9 @@ const IDs_Msgs: Array<[number, string]> = [
   [6, "Chatroom not found."],
   //SECURITY QUESTION
   [7, "Security Question not found."],
+  //CHATROOM MESSAGES
+  [8, "Chatroom Message not found."],
+  [9, "Chatroom Message does not meet validation constraints"],
 ];
 
 export default class DB_Fail_IDs_With_Msgs {
