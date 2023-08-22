@@ -1,24 +1,13 @@
 import ChatroomMessage from "../../../shared/types/Models/ChatroomMessage";
 import { DatabaseActionResult, DatabaseActionResultWithReturnValue } from "./DatabaseActionResultWithReturnValue";
+import { ChatroomMessageInput } from "./sequelize/Inputs/ChatroomMessageInput";
 
 interface ChatroomMessageDatabase {
-  createChatroomMessageTable: (tableName: string) => DatabaseActionResult;
-  createChatroomMessage: (
-    tableName: string,
-    chatroomMessage: Omit<ChatroomMessage, "id" | "createdAt" | "updatedAt">,
-  ) => DatabaseActionResultWithReturnValue<ChatroomMessage>;
-  retrieveChatroomMessage: (
-    tableName: string,
-    chatroomMessageId: number,
-  ) => DatabaseActionResultWithReturnValue<ChatroomMessage>;
-  updateChatroomMessage: (
-    tableName: string,
-    newChatroomMessage: Omit<ChatroomMessage, "createdAt">,
-  ) => DatabaseActionResultWithReturnValue<ChatroomMessage>;
-  deleteChatroomMessage: (
-    tableName: string,
-    message_id: number,
-  ) => DatabaseActionResultWithReturnValue<ChatroomMessage>;
+  createChatroomMessage(message: ChatroomMessageInput): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>>;
+  retreiveAllChatroomMessages(chatroomID: number): Promise<DatabaseActionResultWithReturnValue<Array<ChatroomMessage>>>;
+  retreiveChatroomMessage(messageID: number): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>>;
+  updateChatroomMessage(message: ChatroomMessage): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>>;
+  deleteChatroomMessage(messageID: number): Promise<DatabaseActionResult>;
 }
 
 export default ChatroomMessageDatabase;
