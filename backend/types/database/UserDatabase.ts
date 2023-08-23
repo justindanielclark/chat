@@ -5,7 +5,7 @@ interface UserDatabase {
   createUser: (user: UserInput) => Promise<DatabaseActionResultWithReturnValue<User>>;
   retrieveUserById: (id: number) => Promise<DatabaseActionResultWithReturnValue<User>>;
   retrieveUserByName: (name: string) => Promise<DatabaseActionResultWithReturnValue<User>>;
-  updateUser: (userId: number, userInput: UserInput) => Promise<DatabaseActionResultWithReturnValue<User>>;
+  updateUser: (userId: number, userFieldsToUpdate: Partial<User>) => Promise<DatabaseActionResultWithReturnValue<User>>;
 }
 
 export default UserDatabase;

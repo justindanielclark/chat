@@ -128,7 +128,10 @@ class DB_Instance implements UserDatabase {
       };
     }
   }
-  public async updateUser(userId: number, userInput: UserInput): Promise<DatabaseActionResultWithReturnValue<User>> {
+  public async updateUser(
+    userId: number,
+    userFieldsToUpdate: Partial<User>,
+  ): Promise<DatabaseActionResultWithReturnValue<User>> {
     return {
       success: false,
       failure_id: "1",

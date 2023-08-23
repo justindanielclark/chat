@@ -154,5 +154,70 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+    describe("updateUser(userId: number, userFieldsToUpdate: Partial<User>)", () => {
+      it("can update user.name to a new unique field, Returns: {sucess: true, value: <User>} where <User> has all valid expected <User> properties", async () => {
+        const newName = "CoolName_123";
+        const updateUserResult = await db.updateUser(1, { name: newName });
+        expect(updateUserResult.success).toBe(true);
+        if (updateUserResult.success) {
+          const { validUser } = testUsers;
+          const oldName = validUser.name;
+          validUser.name = newName; // So it matches in below tests
+          const updatedUser = updateUserResult.value;
+          //id
+          expect(typeof updatedUser.id).toBe("number");
+          expect(updatedUser.id).toBe(1);
+          //name
+          expect(typeof updatedUser.name).toBe("string");
+          expect(updatedUser.name).toBe(validUser.name);
+          //password
+          expect(typeof updatedUser.password).toBe("string");
+          expect(updatedUser.password).toBe(validUser.password);
+          //createdAt
+          expect(updatedUser.createdAt instanceof Date).toBe(true);
+          //updatedAt
+          expect(updatedUser.updatedAt instanceof Date).toBe(true);
+          //is_active
+          expect(updatedUser.is_active).toBe(true);
+          //is_online
+          expect(updatedUser.is_online).toBe(true);
+
+          validUser.name = oldName; // Reset after checks
+          await db.updateUser(1, { name: oldName });
+        }
+      });
+      it("will refuse to update user.name to a non-unique field, Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameAlreadyExists", async () => {
+        const updateUserResult = await db.updateUser(2, { name: testUsers.validUser.name });
+        expect(updateUserResult.success).toBe(false);
+        if (!updateUserResult.success) {
+          expect(updateUserResult.failure_id).toBe(DatabaseFailureReasons.UsernameAlreadyExists);
+        }
+      });
+      it("will refuse to update user.name to a field that does not meet requirements (too short), Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameInvalid}", async () => {
+        const updateUserResult = await db.updateUser(1, { name: "a" });
+        expect(updateUserResult.success).toBe(false);
+        if (!updateUserResult.success) {
+          expect(updateUserResult.failure_id).toBe(DatabaseFailureReasons.UsernameInvalid);
+        }
+      });
+      it("will refuse to update user.name to a field that does not meet requirements (too long), Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameInvalid}", async () => {
+        const updateUserResult = await db.updateUser(1, {
+          name: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        });
+        expect(updateUserResult.success).toBe(false);
+        if (!updateUserResult.success) {
+          expect(updateUserResult.failure_id).toBe(DatabaseFailureReasons.UsernameInvalid);
+        }
+      });
+      it("when updating user.is_active to false, will automatically switch user.is_online to false", async () => {
+        //testUsers.validUser (aka id 1) starts out as {is_online: true, is_active: true}
+        const updateUserResult = await db.updateUser(1, { is_active: false });
+        expect(updateUserResult.success).toBe(true);
+        if (updateUserResult.success) {
+          const updatedUser = updateUserResult.value;
+          expect(updatedUser.is_online).toBe(false);
+        }
+      });
+    });
   });
 });
