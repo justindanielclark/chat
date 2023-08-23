@@ -1,5 +1,6 @@
 import { Sequelize, DataTypes } from "sequelize";
 import User from "../classes/User";
+import usernameRegex from "../../../../../../shared/validation/usernameRegex";
 
 export default function UserInit(sequelize: Sequelize) {
   User.init(
@@ -12,6 +13,10 @@ export default function UserInit(sequelize: Sequelize) {
       name: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
+        validate: {
+          is: usernameRegex.regex,
+        },
       },
       password: {
         type: DataTypes.STRING,
