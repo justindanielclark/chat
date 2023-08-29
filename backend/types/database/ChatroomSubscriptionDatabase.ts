@@ -1,15 +1,18 @@
 import ChatroomSubscription from "../../../shared/types/Models/ChatroomSubscription";
-import DatabaseActionResultWithReturnValue from "./DatabaseActionResultWithReturnValue";
+import DatabaseActionResultWithReturnValue, { DatabaseActionResult } from "./DatabaseActionResultWithReturnValue";
 
 interface ChatroomSubscriptionDatabase {
   createChatroomSubscription: (
-    chatroomSubscription: Omit<ChatroomSubscription, "id">,
-  ) => DatabaseActionResultWithReturnValue<ChatroomSubscription>;
-  retrieveChatroomSubscriptionById: (id: number) => DatabaseActionResultWithReturnValue<ChatroomSubscription>;
-  updateChatroomSubscription: (
     chatroomSubscription: ChatroomSubscription,
-  ) => DatabaseActionResultWithReturnValue<ChatroomSubscription>;
-  deleteChatroomById: (id: number) => DatabaseActionResultWithReturnValue<ChatroomSubscription>;
+  ) => Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription>>;
+  retrieveChatroomSubscriptionsByUserId: (
+    userId: number,
+  ) => Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription[]>>;
+  retrieveChatroomSubscriptionsByChatroomId: (
+    chatroomId: number,
+  ) => Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription[]>>;
+  deleteChatroomSubscription: (chatroomSubscription: ChatroomSubscription) => Promise<DatabaseActionResult>;
+  verifyChatroomSubscription: (chatroomSubscription: ChatroomSubscription) => Promise<DatabaseActionResult>;
 }
 
 export default ChatroomSubscriptionDatabase;

@@ -21,6 +21,12 @@ import DatabaseActionResultWithReturnValue, {
   DatabaseActionResult,
 } from "../../../../types/database/DatabaseActionResultWithReturnValue";
 import UserDatabase from "../../../../types/database/UserDatabase";
+import ChatroomDatabase from "../../../../types/database/ChatroomDatabase";
+import Chatroom, { ChatroomInput } from "../../../../../shared/types/Models/Chatroom";
+import { create } from "domain";
+import ChatroomSubscriptionDatabase from "../../../../types/database/ChatroomSubscriptionDatabase";
+import ChatroomSubscription from "../../../../../shared/types/Models/ChatroomSubscription";
+import ChatroomMessageDatabase from "../../../../types/database/ChatroomMessagesDatabase";
 
 class SequelizeDB {
   private static _instance: DB_Instance | null;
@@ -42,7 +48,7 @@ class SequelizeDB {
   }
 }
 
-class DB_Instance implements UserDatabase {
+class DB_Instance implements UserDatabase, ChatroomDatabase, ChatroomSubscriptionDatabase, ChatroomMessageDatabase {
   private _sequelize: Sequelize;
   public constructor() {
     this._sequelize = new Sequelize(connParams.database, connParams.username, connParams.password, {
@@ -137,6 +143,185 @@ class DB_Instance implements UserDatabase {
       failure_id: "1",
     };
   }
+  //Chatroom Database
+  public async createChatroom(chatroom: ChatroomInput): Promise<DatabaseActionResultWithReturnValue<Chatroom>> {
+    try {
+      const createdChatroom = await ChatroomModel.create({ ...chatroom });
+      return {
+        success: true,
+        value: createdChatroom.dataValues,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retreiveAllChatrooms(): Promise<DatabaseActionResultWithReturnValue<Chatroom[]>> {
+    try {
+      const chatrooms = (await ChatroomModel.findAll()).map((chatroom) => chatroom.dataValues);
+      return {
+        success: true,
+        value: chatrooms,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveChatroomById(id: number): Promise<DatabaseActionResultWithReturnValue<Chatroom>> {
+    try {
+      const retrievedChatroom = await ChatroomModel.findByPk(id);
+      if (retrievedChatroom) {
+        return {
+          success: true,
+          value: retrievedChatroom,
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async updateChatroom(
+    id: number,
+    chatroomFieldsToUpdate: Partial<Pick<Chatroom, "name" | "password">>,
+  ): Promise<DatabaseActionResultWithReturnValue<Chatroom>> {
+    return {
+      success: false,
+      failure_id: "1",
+    };
+  }
+  public async deleteChatroomById(id: number): Promise<DatabaseActionResult> {
+    try {
+      const deletedChatroom = await ChatroomModel.destroy({ where: { id } });
+      if (deletedChatroom > 0) {
+        return {
+          success: true,
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  //ChatroomSubscription Database
+  public async createChatroomSubscription(
+    chatroomSubscription: ChatroomSubscription,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription>> {
+    try {
+      const createdChatroomSubscription = await ChatroomSubscriptionModel.create({ ...chatroomSubscription });
+      return {
+        success: true,
+        value: createdChatroomSubscription.dataValues,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveChatroomSubscriptionsByChatroomId(
+    chatroomId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription[]>> {
+    try {
+      const retrievedChatrooms = await ChatroomSubscriptionModel.findAll({ where: { chatroomId } });
+      if (retrievedChatrooms.length > 0) {
+        return {
+          success: true,
+          value: retrievedChatrooms.map((chatroom) => chatroom.dataValues),
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomSubscriptionDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveChatroomSubscriptionsByUserId(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription[]>> {
+    try {
+      const retrievedChatrooms = await ChatroomSubscriptionModel.findAll({ where: { userId } });
+      if (retrievedChatrooms.length > 0) {
+        return {
+          success: true,
+          value: retrievedChatrooms.map((chatroom) => chatroom.dataValues),
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomSubscriptionDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async deleteChatroomSubscription(chatroomSubscription: ChatroomSubscription): Promise<DatabaseActionResult> {
+    try {
+      const deletedChatroomSubscription = await ChatroomSubscriptionModel.destroy({
+        where: { ...chatroomSubscription },
+      });
+      if (deletedChatroomSubscription > 0) {
+        return {
+          success: true,
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomSubscriptionDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async verifyChatroomSubscription(chatroomSubscription: ChatroomSubscription): Promise<DatabaseActionResult> {
+    try {
+      const retrievedChatroom = await ChatroomSubscriptionModel.findOne({ where: { ...chatroomSubscription } });
+      if (retrievedChatroom) {
+        return {
+          success: true,
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomSubscriptionDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  //ChatroomMessages Database
 }
 
 export default SequelizeDB;

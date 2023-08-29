@@ -1,11 +1,14 @@
-import Chatroom from "../../../shared/types/Models/Chatroom";
+import { Chatroom, ChatroomInput } from "../../../shared/types/Models/Chatroom";
 import { DatabaseActionResult, DatabaseActionResultWithReturnValue } from "./DatabaseActionResultWithReturnValue";
 
 interface ChatroomDatabase {
-  createChatroom: (chatroom: Omit<Chatroom, "id">) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
+  createChatroom: (chatroom: ChatroomInput) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
   retrieveChatroomById: (id: number) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
   retreiveAllChatrooms: () => Promise<DatabaseActionResultWithReturnValue<Array<Chatroom>>>;
-  updateChatroom: (chatroom: Chatroom) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
+  updateChatroom: (
+    id: number,
+    chatroomFieldsToUpdate: Partial<Pick<Chatroom, "name" | "password">>,
+  ) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
   deleteChatroomById: (id: number) => Promise<DatabaseActionResult>;
 }
 

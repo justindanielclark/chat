@@ -1,7 +1,6 @@
 interface ChatroomSubscription {
-  id: number; //PK
-  chatroom_id: number; //FK
-  user_id: number; //FK
+  userId: number;
+  chatroomId: number;
 }
 
 export default ChatroomSubscription;
