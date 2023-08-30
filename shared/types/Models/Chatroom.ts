@@ -6,7 +6,7 @@ interface Chatroom {
   createdAt: Date;
   updatedAt: Date;
 }
-type ChatroomInput = Omit<Chatroom, "id" | "createdAt" | "udpatedAt">;
+type ChatroomInput = Omit<Chatroom, "id" | "createdAt" | "updatedAt">;
 
 export default Chatroom;
 

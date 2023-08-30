@@ -6,6 +6,7 @@ class ChatroomMessage extends Model<InferAttributes<ChatroomMessage>, InferCreat
   declare content: string;
   declare createdAt: CreationOptional<Date>;
   declare updatedAt: CreationOptional<Date>;
+  declare deleted: boolean;
   // declare userId: ForeignKey<User["id"]>;
   // declare chatroomId: ForeignKey<Chatroom["id"]>;
   declare userId: number;

@@ -1,6 +1,7 @@
 import { Sequelize, DataTypes } from "sequelize";
 import User from "../classes/User";
 import Chatroom from "../classes/Chatroom";
+import chatroomNameLengthRegex from "../../../../../../shared/validation/chatroomNameLengthRegex";
 
 function ChatroomInit(sequelize: Sequelize) {
   Chatroom.init(
@@ -21,6 +22,10 @@ function ChatroomInit(sequelize: Sequelize) {
       name: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
+        validate: {
+          is: chatroomNameLengthRegex.regex,
+        },
       },
       password: {
         type: DataTypes.STRING,

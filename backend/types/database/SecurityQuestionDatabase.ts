@@ -1,11 +1,9 @@
 import SecurityQuestion from "../../../shared/types/Models/SecurityQuestion";
 import DatabaseActionResultWithReturnValue from "./DatabaseActionResultWithReturnValue";
-import { SecurityQuestionInput } from "./sequelize/Inputs/SecurityQuestionInput";
+import { DatabaseActionResult } from "./DatabaseActionResultWithReturnValue";
 
 interface SecurityQuestionDatabase {
-  createSecurityQuestion: (
-    question: SecurityQuestionInput,
-  ) => Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>>;
+  createSecurityQuestion: (question: string) => Promise<DatabaseActionResult>;
   retrieveAllSecurityQuestions: () => Promise<DatabaseActionResultWithReturnValue<SecurityQuestion[]>>;
   retrieveSecurityQuestionById: (id: number) => Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>>;
 }

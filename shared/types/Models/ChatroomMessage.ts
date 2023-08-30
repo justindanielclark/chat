@@ -1,9 +1,17 @@
 interface ChatroomMessage {
   id: number;
-  user_id: number;
-  chatroom_id: number;
+  userId: number;
+  chatroomId: number;
   content: string;
+  deleted: boolean;
   createdAt: Date;
-  updatedAt?: Date;
+  updatedAt: Date;
 }
+
+type ChatroomMessageInput = Omit<
+  ChatroomMessage,
+  "id" | "createdAt" | "updatedAt"
+>;
+
+export { ChatroomMessage, ChatroomMessageInput };
 export default ChatroomMessage;

@@ -31,6 +31,11 @@ export default function ChatroomMessageInit(sequelize: Sequelize) {
         type: DataTypes.STRING,
         allowNull: false,
       },
+      deleted: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
     },
