@@ -8,12 +8,17 @@ import { SequelizeDB, DB_Instance } from "../../../../../src/services/database/s
 // Models
 import User from "../../../../../../shared/types/Models/User";
 import Chatroom from "../../../../../../shared/types/Models/Chatroom";
+import SecurityQuestion from "../../../../../../shared/types/Models/SecurityQuestion";
+import ChatroomSubscription from "../../../../../../shared/types/Models/ChatroomSubscription";
 // Test Data
 import testUsers from "./testUsers";
 import testChatroomInputs from "./testChatrooms";
+// Data
+import securityQuestions from "../../../../../src/data/securityQuestions";
 // DB Failure Testing
 import DatabaseFailureReasons from "../../../../../src/utils/DatabaseFailureReasons/DatabaseFailureReasons";
-import { create } from "domain";
+import ChatroomMessage from "../../../../../../shared/types/Models/ChatroomMessage";
+import ChatroomAdmin from "../../../../../../shared/types/Models/ChatroomAdmin";
 
 let db: DB_Instance;
 
@@ -25,15 +30,43 @@ afterAll(() => {
   SequelizeDB.clearInstance();
 });
 
+const Questions: SecurityQuestion[] = [];
 const Users: User[] = [];
 const Chatrooms: Chatroom[] = [];
+const ChatroomSubscriptions: ChatroomSubscription[] = [];
+const ChatroomMessages: ChatroomMessage[] = [];
+const ChatroomAdmins: ChatroomAdmin[] = [];
 
 describe("-SequelizeDB-", () => {
-  describe("-User Database Implementation-", () => {
+  describe("-CREATE-", () => {
+    // Security Questions
+    describe("createSecurityQuestion(question: string)", () => {
+      it("can create a security question with an incrementing id, Note: this populates the test_tables with all the secuirty questions", async () => {
+        for (let i = 0; i < securityQuestions.length; i++) {
+          const result = await db.createSecurityQuestion(securityQuestions[i].question);
+          expect(result.success).toBe(true);
+          if (result.success) {
+            Questions.push(result.value);
+          }
+        }
+      });
+      it("will refuse to create a repeated security question, returns {success: false, DatabaseFailureReason.SecurityQuestionIsNotUnique}", async () => {
+        const result = await db.createSecurityQuestion(Questions[0].question);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.SecurityQuestionIsNotUnique);
+        }
+      });
+    });
+    // Users / Security Question Answers
     describe("createUser(user: UserInput)", () => {
       it("can create a valid user and assigns an id of 1, Returns: {success: true, value: <User>} where <User> has all valid expected <User> properties", async () => {
         const validUser = testUsers.validUser;
-        const createUserResult = await db.createUser({ name: validUser.name, password: validUser.password });
+        const createUserResult = await db.createUser({ name: validUser.name, password: validUser.password }, [
+          { securityQuestionId: 1, answer: "A cool answer to a cool question" },
+          { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
+          { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+        ]);
         expect(createUserResult.success).toBe(true);
         if (createUserResult.success) {
           const newUser = createUserResult.value;
@@ -59,7 +92,11 @@ describe("-SequelizeDB-", () => {
       });
       it("can create a second valid user, and increments the id to 2, Returns: {success: true, value: <User>}", async () => {
         const validUser2 = testUsers.validUser2;
-        const createUserResult = await db.createUser({ name: validUser2.name, password: validUser2.password });
+        const createUserResult = await db.createUser({ name: validUser2.name, password: validUser2.password }, [
+          { securityQuestionId: 1, answer: "A cool answer to a cool question" },
+          { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
+          { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+        ]);
         expect(createUserResult.success).toBe(true);
         if (createUserResult.success) {
           const newUser = createUserResult.value;
@@ -69,20 +106,19 @@ describe("-SequelizeDB-", () => {
           Users.push(newUser);
         }
       });
-      it("will refuse to create a user with the same name as an existing user. Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameAlreadyExists}", async () => {
-        const validUser = Users[0];
-        const createUserResult = await db.createUser({ name: validUser.name, password: validUser.password });
-        expect(createUserResult.success).toBe(false);
-        if (!createUserResult.success) {
-          expect(createUserResult.failure_id).toBe(DatabaseFailureReasons.UsernameAlreadyExists);
-        }
-      });
       it("will refuse to create a user with a username that does not meet regex requirements (too short). Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameInvalid}", async () => {
         const { userWithTooShortUsername } = testUsers;
-        const createUserResult = await db.createUser({
-          name: userWithTooShortUsername.name,
-          password: userWithTooShortUsername.password,
-        });
+        const createUserResult = await db.createUser(
+          {
+            name: userWithTooShortUsername.name,
+            password: userWithTooShortUsername.password,
+          },
+          [
+            { securityQuestionId: 1, answer: "A cool answer to a cool question" },
+            { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
+            { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+          ],
+        );
         expect(createUserResult.success).toBe(false);
         if (!createUserResult.success) {
           expect(createUserResult.failure_id).toBe(DatabaseFailureReasons.UsernameInvalid);
@@ -90,16 +126,352 @@ describe("-SequelizeDB-", () => {
       });
       it("will refuse to create a user with a username that does not meet regex requirements (too long). Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameInvalid}", async () => {
         const { userWithTooLongUsername } = testUsers;
-        const createUserResult = await db.createUser({
-          name: userWithTooLongUsername.name,
-          password: userWithTooLongUsername.password,
-        });
+        const createUserResult = await db.createUser(
+          {
+            name: userWithTooLongUsername.name,
+            password: userWithTooLongUsername.password,
+          },
+          [
+            { securityQuestionId: 1, answer: "A cool answer to a cool question" },
+            { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
+            { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+          ],
+        );
         expect(createUserResult.success).toBe(false);
         if (!createUserResult.success) {
           expect(createUserResult.failure_id).toBe(DatabaseFailureReasons.UsernameInvalid);
         }
       });
+      it("will refuse to create a user with the same name as an existing user. Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameAlreadyExists}", async () => {
+        const validUser = Users[0];
+        const createUserResult = await db.createUser({ name: validUser.name, password: validUser.password }, [
+          { securityQuestionId: 1, answer: "A cool answer to a cool question" },
+          { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
+          { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+        ]);
+        expect(createUserResult.success).toBe(false);
+        if (!createUserResult.success) {
+          expect(createUserResult.failure_id).toBe(DatabaseFailureReasons.UsernameAlreadyExists);
+        }
+      });
     });
+    // Chatrooms
+    describe("createChatroom(chatroom: ChatroomInput)", () => {
+      it("can create a chatroom with a null password and valid name and existing userId, Returns: {success: true, value: {chatroom: <Chatroom>, subscription: <ChatroomSubscription>, admin: <ChatroomAdmin>}}", async () => {
+        const validInput = testChatroomInputs.validChatroom1;
+        validInput.ownerId = Users[0].id;
+        const createdChatroom = await db.createChatroom({ ...validInput });
+        expect(createdChatroom.success).toBe(true);
+        if (createdChatroom.success) {
+          const newChatroom = createdChatroom.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom.chatroom;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(1);
+          expect(typeof ownerId).toBe("number");
+          expect(ownerId).toBe(Users[0].id);
+          expect(typeof name).toBe("string");
+          expect(name).toBe(testChatroomInputs.validChatroom1.name);
+          expect(typeof password).toBe("object");
+          expect(password).toBe(null);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+          const { chatroomId, userId } = newChatroom.subscription;
+          expect(chatroomId).toBe(id);
+          expect(userId).toBe(ownerId);
+          const { userId: u, chatroomId: c } = newChatroom.admin;
+          expect(c).toBe(id);
+          expect(u).toBe(ownerId);
+          ChatroomAdmins.push(newChatroom.admin);
+          ChatroomSubscriptions.push(newChatroom.subscription);
+          Chatrooms.push(newChatroom.chatroom);
+        }
+      });
+      it("can create a chatroom with a defined password and a valid name and existing userId, {success: true, value: {chatroom: <Chatroom>, subscription: <ChatroomSubscription>}}", async () => {
+        const validInput = testChatroomInputs.validChatroom2;
+        validInput.ownerId = Users[1].id;
+        const createdChatroom = await db.createChatroom({ ...validInput });
+        expect(createdChatroom.success).toBe(true);
+        if (createdChatroom.success) {
+          const newChatroom = createdChatroom.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom.chatroom;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(2);
+          expect(typeof ownerId).toBe("number");
+          expect(ownerId).toBe(Users[1].id);
+          expect(typeof name).toBe("string");
+          expect(name).toBe(testChatroomInputs.validChatroom2.name);
+          expect(typeof password).toBe("string");
+          expect(password).toBe(testChatroomInputs.validChatroom2.password);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+          const { chatroomId, userId } = newChatroom.subscription;
+          expect(chatroomId).toBe(id);
+          expect(userId).toBe(ownerId);
+          const { userId: u, chatroomId: c } = newChatroom.admin;
+          expect(c).toBe(id);
+          expect(u).toBe(ownerId);
+          ChatroomAdmins.push(newChatroom.admin);
+          ChatroomSubscriptions.push(newChatroom.subscription);
+          Chatrooms.push(newChatroom.chatroom);
+        }
+      });
+      it("can create a second chatroom associated with the same userId, returns {success: true, value: {chatroom: <Chatroom>, subscription: <ChatroomSubscription>}}", async () => {
+        const validInput = testChatroomInputs.validChatroom3;
+        validInput.ownerId = Users[0].id;
+        const createdChatroom = await db.createChatroom({ ...validInput });
+        expect(createdChatroom.success).toBe(true);
+        if (createdChatroom.success) {
+          const newChatroom = createdChatroom.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom.chatroom;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(3);
+          expect(typeof ownerId).toBe("number");
+          expect(ownerId).toBe(Users[0].id);
+          expect(typeof name).toBe("string");
+          expect(name).toBe(testChatroomInputs.validChatroom3.name);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+          const { chatroomId, userId } = newChatroom.subscription;
+          expect(chatroomId).toBe(id);
+          expect(userId).toBe(ownerId);
+          const { userId: u, chatroomId: c } = newChatroom.admin;
+          expect(c).toBe(id);
+          expect(u).toBe(ownerId);
+          ChatroomAdmins.push(newChatroom.admin);
+          ChatroomSubscriptions.push(newChatroom.subscription);
+          Chatrooms.push(newChatroom.chatroom);
+        }
+      });
+      it("will refuse to create a otherwise valid chatroom if the userId is invalid", async () => {
+        const input = testChatroomInputs.validChatroom4;
+        input.ownerId = 10000000;
+        const createdChatroom = await db.createChatroom({ ...input });
+        expect(createdChatroom.success).toBe(false);
+        if (!createdChatroom.success) {
+          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.UserDoesNotExist);
+        }
+      });
+      it("will refuse to create a chatroom with too short a name, Returns {success: false, failure_id: DatabaseFailureReasons.ChatroomNameFailsValidation", async () => {
+        const input = testChatroomInputs.invalidChatroomTooShortRoomName;
+        input.ownerId = Users[0].id;
+        const createdChatroom = await db.createChatroom({ ...input });
+        expect(createdChatroom.success).toBe(false);
+        if (!createdChatroom.success) {
+          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameFailsValidation);
+        }
+      });
+      it("will refuse to create a chatroom with too long a name, Returns {success: false, failure_id: DatabaseFailureReasons.ChatroomNameFailsValidation", async () => {
+        const input = testChatroomInputs.invalidChatroomTooLongRoomName;
+        input.ownerId = Users[0].id;
+        const createdChatroom = await db.createChatroom({ ...input });
+        expect(createdChatroom.success).toBe(false);
+        if (!createdChatroom.success) {
+          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameFailsValidation);
+        }
+      });
+      it("will refuse to create a chatroom with a duplicate name, Returns {sucess: false, failure_id: DatabaseFailureReasons.ChatroomNameAlreadyExists", async () => {
+        const validInput = testChatroomInputs.validChatroom1;
+        validInput.ownerId = Users[1].id;
+        const createdChatroom = await db.createChatroom({ ...validInput });
+        expect(createdChatroom.success).toBe(false);
+        if (!createdChatroom.success) {
+          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameAlreadyExists);
+        }
+      });
+    });
+    // Chatroom Subscription
+    describe("createChatroomSubscription(chatroomSusbcription: ChatroomSubscription)", () => {
+      // it("test print", async () => {
+      //   console.log("\n\n\n\n\n\n\n\n\n\n");
+      //   console.log(ChatroomSubscriptions);
+      //   console.log("\n\n\n\n\n\n\n\n\n\n");
+      //   expect(true).toBe(true);
+      // });
+      // Current Existing Per Above:
+      // [
+      //   { chatroomId: 1, userId: 1 },
+      //   { chatroomId: 2, userId: 2 },
+      //   { chatroomId: 3, userId: 1 }
+      // ]
+      it("will create a novel combination of userId/chatroomId of existing valid userIds/chatroomIds", async () => {
+        const createdSubscription = await db.createChatroomSubscription({ chatroomId: 2, userId: 1 });
+        expect(createdSubscription.success).toBe(true);
+        if (createdSubscription.success) {
+          ChatroomSubscriptions.push(createdSubscription.value);
+        }
+      });
+      it("will refuse to create a non-unique combination of userId/ChatroomId", async () => {
+        const createdSubscription = await db.createChatroomSubscription({ chatroomId: 1, userId: 1 });
+        expect(createdSubscription.success).toBe(false);
+        if (!createdSubscription.success) {
+          expect(createdSubscription.failure_id).toBe(DatabaseFailureReasons.ChatroomSubscriptionIsNotUnique);
+        }
+      });
+      it("will refuse to create a subscription with a non-valid userId but valid chatroomId", async () => {
+        const createdSubscription = await db.createChatroomSubscription({ chatroomId: 1, userId: 10000 });
+        expect(createdSubscription.success).toBe(false);
+        if (!createdSubscription.success) {
+          expect(createdSubscription.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
+        }
+      });
+    });
+    // Chatroom Message
+    describe("createChatroomMessage(message: ChatroomMessageInput)", () => {
+      it("can create a valid chatroomMessage if given valid foreign keys", async () => {
+        const content = "This is my first message! Isn't that cool!";
+        const createdMessage = await db.createChatroomMessage({ chatroomId: 1, userId: 1, deleted: false, content });
+        expect(createdMessage.success).toBe(true);
+        if (createdMessage.success) {
+          const { chatroomId, content: c, createdAt, updatedAt, deleted, id, userId } = createdMessage.value;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(1);
+          expect(typeof userId).toBe("number");
+          expect(userId).toBe(1);
+          expect(typeof chatroomId).toBe("number");
+          expect(chatroomId).toBe(1);
+          expect(typeof content).toBe("string");
+          expect(c).toBe(content);
+          expect(typeof deleted).toBe("boolean");
+          expect(deleted).toBe(false);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+          ChatroomMessages.push(createdMessage.value);
+        }
+      });
+      it("can create a second message with differing user/chatroom information", async () => {
+        const content = "This is my second message in a different chatroom! This is so cool!";
+        const createdMessage = await db.createChatroomMessage({ chatroomId: 2, userId: 2, deleted: false, content });
+        expect(createdMessage.success).toBe(true);
+        if (createdMessage.success) {
+          const { chatroomId, content: c, createdAt, updatedAt, deleted, id, userId } = createdMessage.value;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(2);
+          expect(typeof userId).toBe("number");
+          expect(userId).toBe(2);
+          expect(typeof chatroomId).toBe("number");
+          expect(chatroomId).toBe(2);
+          expect(typeof content).toBe("string");
+          expect(c).toBe(content);
+          expect(typeof deleted).toBe("boolean");
+          expect(deleted).toBe(false);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+          ChatroomMessages.push(createdMessage.value);
+        }
+      });
+      it("can create multiple messages under with the same userId and chatroomId", async () => {
+        const content = "Wow! A Third Message!";
+        const createdMessage = await db.createChatroomMessage({ chatroomId: 1, userId: 1, deleted: false, content });
+        expect(createdMessage.success).toBe(true);
+        if (createdMessage.success) {
+          const { chatroomId, content: c, createdAt, updatedAt, deleted, id, userId } = createdMessage.value;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(3);
+          expect(typeof userId).toBe("number");
+          expect(userId).toBe(1);
+          expect(typeof chatroomId).toBe("number");
+          expect(chatroomId).toBe(1);
+          expect(typeof content).toBe("string");
+          expect(c).toBe(content);
+          expect(typeof deleted).toBe("boolean");
+          expect(deleted).toBe(false);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+          ChatroomMessages.push(createdMessage.value);
+        }
+      });
+      it("will refuse to create a chatroomMessage if given an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure}", async () => {
+        const content = "A failed message ;( ;(";
+        const createdMessage = await db.createChatroomMessage({ chatroomId: 1, userId: 100000, deleted: false, content });
+        expect(createdMessage.success).toBe(false);
+        if (!createdMessage.success) {
+          expect(createdMessage.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
+        }
+      });
+      it("will refuse to create a chatroomMessage if given an invalid chatroomId, returns {success: false, failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure}", async () => {
+        const content = "A failed message ;( ;(";
+        const createdMessage = await db.createChatroomMessage({ chatroomId: 100000, userId: 1, deleted: false, content });
+        expect(createdMessage.success).toBe(false);
+        if (!createdMessage.success) {
+          expect(createdMessage.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
+        }
+      });
+    });
+    // Chatroom Admin
+    describe("createChatroomAdmin(chatroomAdmin: ChatroomAdmin)", () => {
+      // it("test print", async () => {
+      //   console.log("\n\n\n\n\n\n\n\n\n\n");
+      //   console.log(ChatroomAdmins);
+      //   console.log("\n\n\n\n\n\n\n\n\n\n");
+      //   expect(true).toBe(true);
+      // });
+      // Current Existing Per Above:
+      // [
+      //   { chatroomId: 1, userId: 1 },
+      //   { chatroomId: 2, userId: 2 },
+      //   { chatroomId: 3, userId: 1 }
+      // ]
+      it("can create a new ChatroomAdmin given novel valid foreign keys", async () => {
+        const createdAdmin = await db.createChatroomAdmin({ userId: 2, chatroomId: 1 });
+        expect(createdAdmin.success).toBe(true);
+        if (createdAdmin.success) {
+          const { chatroomId, userId } = createdAdmin.value;
+          expect(chatroomId).toBe(1);
+          expect(userId).toBe(2);
+        }
+      });
+      it("will refuse to create a new ChatroomAdmin given a set of duplicate foreign keys, returns {success: false, failure_id: DatabaseFailureReasons.ChatroomAdminAlreadyExists}", async () => {
+        const createdAdmin = await db.createChatroomAdmin({ userId: 2, chatroomId: 1 });
+        expect(createdAdmin.success).toBe(false);
+        if (!createdAdmin.success) {
+          expect(createdAdmin.failure_id).toBe(DatabaseFailureReasons.ChatroomAdminAlreadyExists);
+        }
+      });
+      it("will refuse to create a ChatroomAdmin given an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure}", async () => {
+        const createdAdmin = await db.createChatroomAdmin({ userId: 1000000, chatroomId: 1 });
+        expect(createdAdmin.success).toBe(false);
+        if (!createdAdmin.success) {
+          expect(createdAdmin.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
+        }
+      });
+      it("will refuse to create a ChatroomAdmin given an invalid chatroomId, returns {success: false, failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure}", async () => {
+        const createdAdmin = await db.createChatroomAdmin({ userId: 1, chatroomId: 10000000000000 });
+        expect(createdAdmin.success).toBe(false);
+        if (!createdAdmin.success) {
+          expect(createdAdmin.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
+        }
+      });
+    });
+  });
+  describe("-RETREIVE", () => {
+    //Security Questions
+    describe("retieveAllSecurityQuestions()", () => {
+      it("returns a an array of security questions", async () => {
+        const results = await db.retrieveAllSecurityQuestions();
+        expect(results.success).toBe(true);
+        if (results.success) {
+          expect(Array.isArray(results.value)).toBe(true);
+          expect(results.value.length).toBe(Questions.length);
+        }
+      });
+    });
+    describe("retrieveSecurityQuestionById(id: number)", () => {
+      it("returns a question when given a valid id", async () => {
+        const result = await db.retrieveSecurityQuestionById(Questions[0].id);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.value.question).toBe(Questions[0].question);
+        }
+      });
+      it("when given an invalid id will return {success: false, failure_id: DatabaseFailureReasons.SecurityQuestionDoesNotExist}", async () => {
+        const result = await db.retrieveSecurityQuestionById(10000000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.SecurityQuestionDoesNotExist);
+        }
+      });
+    });
+    //Users
     describe("retrieveUserById(id: number)", () => {
       it("can retreive a user that matches to a valid id, Returns: {success: true, value: <User>} where <User> has all valid expected <User> properties", async () => {
         const retrievedUserResult = await db.retrieveUserById(Users[0].id);
@@ -167,6 +539,47 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+    //Chatrooms
+    describe("retreiveAllChatrooms()", () => {
+      it("can retrieve all listed chatrooms and their ids", async () => {
+        const retrievedChatrooms = await db.retreiveAllChatrooms();
+        expect(retrievedChatrooms.success).toBe(true);
+        if (retrievedChatrooms.success) {
+          const rooms = retrievedChatrooms.value;
+          expect(rooms.length).toBe(Chatrooms.length);
+        }
+      });
+    });
+    describe("retrieveChatroomById(id: number)", () => {
+      it("can retrieve a chatroom with a valid chatroom id, Returns {success: true, value: <Chatroom>}", async () => {
+        const retreived = await db.retrieveChatroomById(Chatrooms[0].id);
+        expect(retreived.success).toBe(true);
+        if (retreived.success) {
+          const newChatroom = retreived.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(1);
+          expect(typeof ownerId).toBe("number");
+          expect(ownerId).toBe(Users[0].id);
+          expect(typeof name).toBe("string");
+          expect(name).toBe(testChatroomInputs.validChatroom1.name);
+          expect(typeof password).toBe("object");
+          expect(password).toBe(null);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+        }
+      });
+      it("will fail gracefully to return a chatroom when provided in invalid id, Returns {success: false, failure_id: DatabaseFailureReasons.ChatroomDoesNotExist", async () => {
+        const retrieved = await db.retrieveChatroomById(10000000);
+        expect(retrieved.success).toBe(false);
+        if (!retrieved.success) {
+          expect(retrieved.failure_id).toBe(DatabaseFailureReasons.ChatroomDoesNotExist);
+        }
+      });
+    });
+  });
+  describe("-UPDATE-", () => {
+    //Users
     describe("updateUser(userId: number, userFieldsToUpdate: Partial<User>)", () => {
       it("can update user.name to a new unique field, Returns: {sucess: true, value: <User>} where <User> has all valid expected <User> properties", async () => {
         const newName = "CoolName_123";
@@ -234,110 +647,112 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-  });
-  describe("-Chatroom Database Implementation-", () => {
-    describe("createChatroom(chatroom: ChatroomInput)", () => {
-      it("can create a chatroom with a null password and valid name and existing userId, Returns: {success: true, value: <Chatroom>} where <Chatroom> has all valid expected <Chatroom> properties", async () => {
-        const validInput = testChatroomInputs.validChatroom1;
-        validInput.ownerId = Users[0].id;
-        const createdChatroom = await db.createChatroom({ ...validInput });
-        expect(createdChatroom.success).toBe(true);
-        if (createdChatroom.success) {
-          const newChatroom = createdChatroom.value;
-          const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom;
+    //Chatrooms
+    describe('updateChatroom(id: number, chatroomFieldsToUpdate: AtLeastOne<Chatroom, "name" | "password")', () => {
+      it("can update chatroom.name to a new unique field, Returns: {success: true, value: <Chatroom>} where <Chatroom> has all valid expected <Chatroom> properties", async () => {
+        const newChatroomName = "a new cool chatroom name";
+        const updatedChatroom = await db.updateChatroom(Chatrooms[0].id, { name: newChatroomName });
+        expect(updatedChatroom.success).toBe(true);
+        if (updatedChatroom.success) {
+          const changedChatroom = updatedChatroom.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = changedChatroom;
           expect(typeof id).toBe("number");
           expect(id).toBe(1);
           expect(typeof ownerId).toBe("number");
           expect(ownerId).toBe(Users[0].id);
           expect(typeof name).toBe("string");
-          expect(name).toBe(testChatroomInputs.validChatroom1.name);
+          expect(name).toBe(newChatroomName);
           expect(typeof password).toBe("object");
           expect(password).toBe(null);
           expect(createdAt instanceof Date).toBe(true);
           expect(updatedAt instanceof Date).toBe(true);
-          Chatrooms.push(newChatroom);
+          Chatrooms[0] = changedChatroom;
         }
       });
-      it("can create a chatroom with a defined password and a valid name and existing userId, Returns: {success: true, value: <Chatroom>} where <Chatroom> has all valid expected <Chatroom> properties", async () => {
-        const validInput = testChatroomInputs.validChatroom2;
-        validInput.ownerId = Users[1].id;
-        const createdChatroom = await db.createChatroom({ ...validInput });
-        expect(createdChatroom.success).toBe(true);
-        if (createdChatroom.success) {
-          const newChatroom = createdChatroom.value;
-          const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom;
+      it("can update chatroom.password to a new value, Returns: {success: true, value: <Chatroom>}", async () => {
+        const newPassword = "aCoolPassword";
+        const updatedChatroom = await db.updateChatroom(Chatrooms[0].id, { password: newPassword });
+        expect(updatedChatroom.success).toBe(true);
+        if (updatedChatroom.success) {
+          const changedChatroom = updatedChatroom.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = changedChatroom;
           expect(typeof id).toBe("number");
-          expect(id).toBe(2);
-          expect(typeof ownerId).toBe("number");
-          expect(ownerId).toBe(Users[1].id);
-          expect(typeof name).toBe("string");
-          expect(name).toBe(testChatroomInputs.validChatroom2.name);
-          expect(typeof password).toBe("string");
-          expect(password).toBe(testChatroomInputs.validChatroom2.password);
-          expect(createdAt instanceof Date).toBe(true);
-          expect(updatedAt instanceof Date).toBe(true);
-          Chatrooms.push(newChatroom);
-        }
-      });
-      it("can create a second chatroom associated with the same userId", async () => {
-        const validInput = testChatroomInputs.validChatroom3;
-        validInput.ownerId = Users[0].id;
-        const createdChatroom = await db.createChatroom({ ...validInput });
-        expect(createdChatroom.success).toBe(true);
-        if (createdChatroom.success) {
-          const newChatroom = createdChatroom.value;
-          const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom;
-          expect(typeof id).toBe("number");
-          expect(id).toBe(3);
+          expect(id).toBe(1);
           expect(typeof ownerId).toBe("number");
           expect(ownerId).toBe(Users[0].id);
           expect(typeof name).toBe("string");
-          expect(name).toBe(testChatroomInputs.validChatroom3.name);
+          expect(name).toBe(Chatrooms[0].name);
+          expect(typeof password).toBe("string");
+          expect(password).toBe(newPassword);
           expect(createdAt instanceof Date).toBe(true);
           expect(updatedAt instanceof Date).toBe(true);
-          Chatrooms.push(newChatroom);
+          Chatrooms[0] = changedChatroom;
         }
       });
-      it("will refuse to create a otherwise valid chatroom if the userId is invalid", async () => {
-        const input = testChatroomInputs.validChatroom4;
-        input.ownerId = 10000000;
-        const createdChatroom = await db.createChatroom({ ...input });
-        expect(createdChatroom.success).toBe(false);
-        if (!createdChatroom.success) {
-          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.UserDoesNotExist);
+      it("can update chatroom.password to a null value, Returns: {success: true, value: <Chatroom>}", async () => {
+        const newPassword = null;
+        const updatedChatroom = await db.updateChatroom(Chatrooms[0].id, { password: newPassword });
+        expect(updatedChatroom.success).toBe(true);
+        if (updatedChatroom.success) {
+          const changedChatroom = updatedChatroom.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = changedChatroom;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(1);
+          expect(typeof ownerId).toBe("number");
+          expect(ownerId).toBe(Users[0].id);
+          expect(typeof name).toBe("string");
+          expect(name).toBe(Chatrooms[0].name);
+          expect(typeof password).toBe("object");
+          expect(password).toBe(newPassword);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
+          Chatrooms[0] = changedChatroom;
+        }
+      });
+      it("will refuse to update chatroom.name to a non-unique field, Returns: {success: false, failure_id: DatabaseFailureReasons.ChatroomNameAlreadyExists", async () => {
+        const newName = Chatrooms[1].name;
+        const updatedChatroom = await db.updateChatroom(Chatrooms[0].id, { name: newName });
+        expect(updatedChatroom.success).toBe(false);
+        if (!updatedChatroom.success) {
+          expect(updatedChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameAlreadyExists);
         }
       });
       it("will refuse to create a chatroom with too short a name, Returns {success: false, failure_id: DatabaseFailureReasons.ChatroomNameFailsValidation", async () => {
-        const input = testChatroomInputs.invalidChatroomTooShortRoomName;
-        input.ownerId = Users[0].id;
-        const createdChatroom = await db.createChatroom({ ...input });
-        expect(createdChatroom.success).toBe(false);
-        if (!createdChatroom.success) {
-          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameFailsValidation);
+        const newName = "";
+        const updatedChatroom = await db.updateChatroom(Chatrooms[0].id, { name: newName });
+        expect(updatedChatroom.success).toBe(false);
+        if (!updatedChatroom.success) {
+          expect(updatedChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameFailsValidation);
         }
       });
       it("will refuse to create a chatroom with too long a name, Returns {success: false, failure_id: DatabaseFailureReasons.ChatroomNameFailsValidation", async () => {
-        const input = testChatroomInputs.invalidChatroomTooLongRoomName;
-        input.ownerId = Users[0].id;
-        const createdChatroom = await db.createChatroom({ ...input });
-        expect(createdChatroom.success).toBe(false);
-        if (!createdChatroom.success) {
-          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameFailsValidation);
-        }
-      });
-      it("will refuse to create a chatroom with a duplicate name, Returns {sucess: false, failure_id: DatabaseFailureReasons.ChatroomNameAlreadyExists", async () => {
-        const validInput = testChatroomInputs.validChatroom1;
-        validInput.ownerId = Users[1].id;
-        const createdChatroom = await db.createChatroom({ ...validInput });
-        expect(createdChatroom.success).toBe(false);
-        if (!createdChatroom.success) {
-          expect(createdChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameAlreadyExists);
+        const newName =
+          "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        const updatedChatroom = await db.updateChatroom(Chatrooms[0].id, { name: newName });
+        expect(updatedChatroom.success).toBe(false);
+        if (!updatedChatroom.success) {
+          expect(updatedChatroom.failure_id).toBe(DatabaseFailureReasons.ChatroomNameFailsValidation);
         }
       });
     });
-    //   describe("", () => {});
-    //   describe("", () => {});
-    //   describe("", () => {});
-    //   describe("", () => {});
+  });
+  describe("-DELETE-", () => {
+    //Chatrooms
+    describe("deleteChatroomById(id: number)", () => {
+      it("can delete a chatroom when provided a valid id, returns {success: true}", async () => {
+        const deleteResult = await db.deleteChatroomById(Chatrooms[Chatrooms.length - 1].id);
+        expect(deleteResult.success).toBe(true);
+        const allChatrooms = await db.retreiveAllChatrooms();
+        expect(allChatrooms.success ? allChatrooms.value.length : -1).toBe(Chatrooms.length - 1);
+        Chatrooms.pop();
+      });
+      it("will refuse to delete a chatroom when provided an invalid id, returns {sucess: false, failure_id: DatabaseFailureReasons.ChatroomNotFound}", async () => {
+        const deleteResult = await db.deleteChatroomById(100000000000000);
+        expect(deleteResult.success).toBe(false);
+        if (!deleteResult.success) {
+          expect(deleteResult.failure_id).toBe(DatabaseFailureReasons.ChatroomDoesNotExist);
+        }
+      });
+    });
   });
 });

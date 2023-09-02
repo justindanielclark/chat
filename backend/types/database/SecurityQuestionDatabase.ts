@@ -3,7 +3,7 @@ import DatabaseActionResultWithReturnValue from "./DatabaseActionResultWithRetur
 import { DatabaseActionResult } from "./DatabaseActionResultWithReturnValue";
 
 interface SecurityQuestionDatabase {
-  createSecurityQuestion: (question: string) => Promise<DatabaseActionResult>;
+  createSecurityQuestion: (question: string) => Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>>;
   retrieveAllSecurityQuestions: () => Promise<DatabaseActionResultWithReturnValue<SecurityQuestion[]>>;
   retrieveSecurityQuestionById: (id: number) => Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>>;
 }

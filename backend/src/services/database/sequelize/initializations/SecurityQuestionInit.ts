@@ -12,6 +12,7 @@ export default function SecurityQuestionInit(sequelize: Sequelize) {
       question: {
         type: DataTypes.STRING,
         allowNull: false,
+        unique: true,
       },
     },
     { sequelize, timestamps: false, tableName: "securityQuestions" },
