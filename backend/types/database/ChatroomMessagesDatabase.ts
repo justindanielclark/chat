@@ -3,8 +3,8 @@ import { DatabaseActionResult, DatabaseActionResultWithReturnValue } from "./Dat
 
 interface ChatroomMessageDatabase {
   createChatroomMessage(message: ChatroomMessageInput): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>>;
-  retreiveAllChatroomMessages(chatroomId: number): Promise<DatabaseActionResultWithReturnValue<Array<ChatroomMessage>>>;
-  retreiveChatroomMessage(messageId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>>;
+  retrieveAllChatroomMessages(chatroomId: number): Promise<DatabaseActionResultWithReturnValue<Array<ChatroomMessage>>>;
+  retrieveChatroomMessage(messageId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>>;
   updateChatroomMessage(
     messageId: number,
     messageFieldsToUpdate: Partial<Pick<ChatroomMessage, "content" | "updatedAt">>,

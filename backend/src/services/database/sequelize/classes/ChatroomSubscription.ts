@@ -1,4 +1,4 @@
-import { Model, InferAttributes, InferCreationAttributes, CreationOptional, NonAttribute } from "sequelize";
+import { Model, InferAttributes, InferCreationAttributes, NonAttribute } from "sequelize";
 import User from "./User";
 import Chatroom from "./Chatroom";
 class ChatroomSubscription extends Model<

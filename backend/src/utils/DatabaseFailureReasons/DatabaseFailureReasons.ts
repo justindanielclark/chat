@@ -19,10 +19,14 @@ const DatabaseFailureReasons = {
   //ChatroomAdmin
   ChatroomAdminDoesNotExist: "Chatroom Admin Does Not Exist For Those Parameters",
   ChatroomAdminAlreadyExists: "Chatroom Admin Already Exists With Those Parameters",
+  //ChatroomBan
+  ChatroomBanDoesNotExist: "Chatroom Ban Does Not Exist For Those Parameters",
+  ChatroomBanAlreadyExists: "Chatroom Ban Already Exists With Those Parameters",
+  ChatroomBanCannotBeGivenToOwner: "Cannot Give A Chatroom Ban To The Chatroom Owner",
   //SecurityQuestion
   SecurityQuestionIsNotUnique: "Security Question Is Not Unique",
   SecurityQuestionDoesNotExist: "Security Question Does Not Exist For That Parameter",
   //SecurityQuestionAnswer
-  SecurityQuestionAnswerDoesNotExist: "Security Question Does Not Exist For Those Parameters",
+  SecurityQuestionAnswerDoesNotExist: "Security Question Answer Does Not Exist For Those Parameters",
 };
 export default DatabaseFailureReasons;

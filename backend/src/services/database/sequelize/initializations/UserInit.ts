@@ -33,6 +33,11 @@ export default function UserInit(sequelize: Sequelize) {
       createdAt: DataTypes.DATE,
       updatedAt: DataTypes.DATE,
     },
-    { sequelize, timestamps: true, tableName: "users" },
+    {
+      sequelize,
+      timestamps: true,
+      tableName: "users",
+      indexes: [{ fields: ["name"], unique: true, name: "name_index" }],
+    },
   );
 }

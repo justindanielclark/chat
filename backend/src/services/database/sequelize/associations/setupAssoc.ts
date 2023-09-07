@@ -11,22 +11,26 @@ export default function setupAssoc() {
   User.hasMany(Chatroom, {
     sourceKey: "id",
     foreignKey: "ownerId",
-    as: "chatrooms",
+    as: "ownerOf",
   });
   User.hasMany(ChatroomMessage, {
     sourceKey: "id",
     foreignKey: "userId",
-    as: "chatroomMessages",
+    as: "writerOf",
   });
-  User.belongsToMany(Chatroom, { through: ChatroomSubscription, as: "chatroomSubscriptions", foreignKey: "userId" });
-  User.belongsToMany(Chatroom, { through: ChatroomAdmin, as: "chatroomAdmins", foreignKey: "userId" });
-  User.belongsToMany(Chatroom, { through: ChatroomBan, as: "chatroomBans", foreignKey: "userId" });
-  User.belongsToMany(SecurityQuestion, {
-    through: SecurityQuestionAnswer,
-    as: "securityQuestionAnswers",
+  User.belongsToMany(Chatroom, {
+    through: ChatroomSubscription,
+    as: "subscribedTo",
     foreignKey: "userId",
   });
+  User.belongsToMany(Chatroom, { through: ChatroomAdmin, as: "adminOf", foreignKey: "userId" });
+  User.belongsToMany(Chatroom, { through: ChatroomBan, as: "bannedFrom", foreignKey: "userId" });
 
+  User.belongsToMany(SecurityQuestion, {
+    through: SecurityQuestionAnswer,
+    as: "securityQuestionAnswer_user",
+    foreignKey: "userId",
+  });
   Chatroom.hasMany(ChatroomMessage, {
     sourceKey: "id",
     foreignKey: "chatroomId",
@@ -34,15 +38,15 @@ export default function setupAssoc() {
   });
   Chatroom.belongsToMany(User, {
     through: ChatroomSubscription,
-    as: "chatroomSubscriptions",
+    as: "subscribers",
     foreignKey: "chatroomId",
   });
-  Chatroom.belongsToMany(User, { through: ChatroomAdmin, as: "chatroomAdmins", foreignKey: "chatroomId" });
-  Chatroom.belongsToMany(User, { through: ChatroomBan, as: "chatroomBans", foreignKey: "chatroomId" });
+  Chatroom.belongsToMany(User, { through: ChatroomAdmin, as: "chatroomAdmin_chatroom", foreignKey: "chatroomId" });
+  Chatroom.belongsToMany(User, { through: ChatroomBan, as: "chatroomBan_chatroom", foreignKey: "chatroomId" });
 
   SecurityQuestion.belongsToMany(User, {
     through: SecurityQuestionAnswer,
-    as: "securityQuestionAnswers",
+    as: "securityQuestionAnswer_securityQuestion",
     foreignKey: "securityQuestionId",
   });
 }

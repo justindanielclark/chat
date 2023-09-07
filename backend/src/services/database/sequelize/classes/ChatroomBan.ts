@@ -8,4 +8,6 @@ class ChatroomBan extends Model<InferAttributes<ChatroomBan>, InferCreationAttri
   declare user?: NonAttribute<User>;
   declare chatroom?: NonAttribute<Chatroom>;
 }
+
+export { ChatroomBan };
 export default ChatroomBan;

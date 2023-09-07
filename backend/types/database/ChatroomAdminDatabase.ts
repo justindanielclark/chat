@@ -3,10 +3,10 @@ import { DatabaseActionResult, DatabaseActionResultWithReturnValue } from "./Dat
 
 interface ChatroomAdminDatabase {
   createChatroomAdmin(chatroomAdmin: ChatroomAdmin): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin>>;
-  retreiveAllChatroomAdminsByChatroomId(
+  retrieveAllChatroomAdminsByChatroomId(
     chatroomId: number,
   ): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin[]>>;
-  retreiveAllChatroomAdminsByUserId(userId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin[]>>;
+  retrieveAllChatroomAdminsByUserId(userId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin[]>>;
   deleteChatroomAdmin(chatroomAdmin: ChatroomAdmin): Promise<DatabaseActionResult>;
 }
 

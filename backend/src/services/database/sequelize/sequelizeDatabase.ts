@@ -11,6 +11,7 @@ import ChatroomSubscription from "../../../../../shared/types/Models/ChatroomSub
 import ChatroomAdmin from "../../../../../shared/types/Models/ChatroomAdmin";
 import SecurityQuestion from "../../../../../shared/types/Models/SecurityQuestion";
 import SecurityQuestionAnswer from "../../../../../shared/types/Models/SecurityQuestionAnswer";
+import { ChatroomBan } from "../../../../../shared/types/Models/ChatroomBan";
 //Models
 import ChatroomModel from "./classes/Chatroom";
 import ChatroomAdminModel from "./classes/ChatroomAdmin";
@@ -26,7 +27,9 @@ import initAllModels from "./initializations/_initAll";
 import setupAssoc from "./associations/setupAssoc";
 //Database Interfaces
 import DatabaseFailureReasons from "../../../utils/DatabaseFailureReasons/DatabaseFailureReasons";
-import DatabaseActionResultWithReturnValue, { DatabaseActionResult } from "../../../../types/database/DatabaseActionResultWithReturnValue";
+import DatabaseActionResultWithReturnValue, {
+  DatabaseActionResult,
+} from "../../../../types/database/DatabaseActionResultWithReturnValue";
 import UserDatabase from "../../../../types/database/UserDatabase";
 import ChatroomDatabase from "../../../../types/database/ChatroomDatabase";
 import ChatroomSubscriptionDatabase from "../../../../types/database/ChatroomSubscriptionDatabase";
@@ -34,7 +37,7 @@ import ChatroomMessageDatabase from "../../../../types/database/ChatroomMessages
 import ChatroomAdminDatabase from "../../../../types/database/ChatroomAdminDatabase";
 import SecurityQuestionDatabase from "../../../../types/database/SecurityQuestionDatabase";
 import SecurityQuestionAnswerDatabase from "../../../../types/database/SecurityQuestionAnswerDatabase";
-import { create } from "domain";
+import ChatroomBanDatabase from "../../../../types/database/ChatroomBanDatabase";
 
 class SequelizeDB {
   private static _instance: DB_Instance | null;
@@ -64,7 +67,8 @@ class DB_Instance
     ChatroomMessageDatabase,
     ChatroomAdminDatabase,
     SecurityQuestionDatabase,
-    SecurityQuestionAnswerDatabase
+    SecurityQuestionAnswerDatabase,
+    ChatroomBanDatabase
 {
   private _sequelize: Sequelize;
   public constructor() {
@@ -87,9 +91,10 @@ class DB_Instance
   public async createUser(
     user: UserInput,
     securityQuestionAnswers: Array<Omit<SecurityQuestionAnswer, "userId">>,
-  ): Promise<DatabaseActionResultWithReturnValue<User>> {
+  ): Promise<DatabaseActionResultWithReturnValue<{ user: User; answers: SecurityQuestionAnswer[] }>> {
     const transactionID = await this._sequelize.transaction();
     let newUser: UserModel;
+    let answers: SecurityQuestionAnswer[] = [];
     try {
       newUser = await UserModel.create({ ...user }, { transaction: transactionID });
     } catch (err) {
@@ -113,7 +118,7 @@ class DB_Instance
     }
     try {
       for (let i = 0; i < securityQuestionAnswers.length; i++) {
-        await SecurityQuestionAnswerModel.create(
+        const answer = await SecurityQuestionAnswerModel.create(
           {
             userId: newUser.id,
             securityQuestionId: securityQuestionAnswers[i].securityQuestionId,
@@ -121,6 +126,7 @@ class DB_Instance
           },
           { transaction: transactionID },
         );
+        answers.push(answer.dataValues);
       }
     } catch (err) {
       await transactionID.rollback();
@@ -132,7 +138,10 @@ class DB_Instance
     await transactionID.commit();
     return {
       success: true,
-      value: newUser.dataValues,
+      value: {
+        user: newUser.dataValues,
+        answers,
+      },
     };
   }
   public async retrieveUserById(id: number): Promise<DatabaseActionResultWithReturnValue<User>> {
@@ -170,6 +179,122 @@ class DB_Instance
         };
       }
     } catch (err) {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveUserAndAllSubscribedChatrooms(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<{ user: User; chatrooms: Pick<Chatroom, "name" | "id">[] }>> {
+    try {
+      const result = await UserModel.findByPk(userId, {
+        include: { model: ChatroomModel, association: "subscribedTo", attributes: ["name", "id"] },
+      });
+      if (result) {
+        return {
+          success: true,
+          value: {
+            user: result.dataValues,
+            chatrooms: result.subscribedTo.map((sub) => {
+              return { name: sub.dataValues.name, id: sub.dataValues.id };
+            }),
+          },
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UserDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveUserAndAllOwnedChatrooms(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<{ user: User; chatrooms: Pick<Chatroom, "name" | "id">[] }>> {
+    try {
+      const result = await UserModel.findByPk(userId, {
+        include: { model: ChatroomModel, association: "ownerOf", attributes: ["name", "id"] },
+      });
+      if (result) {
+        return {
+          success: true,
+          value: {
+            user: result.dataValues,
+            chatrooms: result.subscribedTo.map((sub) => {
+              return { name: sub.dataValues.name, id: sub.dataValues.id };
+            }),
+          },
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UserDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveUserAndAllBannedChatrooms(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<{ user: User; chatrooms: Pick<Chatroom, "name" | "id">[] }>> {
+    try {
+      const result = await UserModel.findByPk(userId, {
+        include: { model: ChatroomModel, association: "bannedFrom", attributes: ["name", "id"] },
+      });
+      if (result) {
+        return {
+          success: true,
+          value: {
+            user: result.dataValues,
+            chatrooms: result.subscribedTo.map((sub) => {
+              return { name: sub.dataValues.name, id: sub.dataValues.id };
+            }),
+          },
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UserDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveUserAndAllAdminChatrooms(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<{ user: User; chatrooms: Pick<Chatroom, "name" | "id">[] }>> {
+    try {
+      const result = await UserModel.findByPk(userId, {
+        include: { model: ChatroomModel, association: "adminOf", attributes: ["name", "id"] },
+      });
+      if (result) {
+        return {
+          success: true,
+          value: {
+            user: result.dataValues,
+            chatrooms: result.subscribedTo.map((sub) => {
+              return { name: sub.dataValues.name, id: sub.dataValues.id };
+            }),
+          },
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UserDoesNotExist,
+      };
+    } catch {
       return {
         success: false,
         failure_id: DatabaseFailureReasons.UnknownError,
@@ -232,9 +357,13 @@ class DB_Instance
     }
   }
   //Chatroom Database
-  public async createChatroom(
-    chatroom: ChatroomInput,
-  ): Promise<DatabaseActionResultWithReturnValue<{ chatroom: Chatroom; subscription: ChatroomSubscription; admin: ChatroomAdmin }>> {
+  public async createChatroom(chatroom: ChatroomInput): Promise<
+    DatabaseActionResultWithReturnValue<{
+      chatroom: Chatroom;
+      subscription: ChatroomSubscription;
+      admin: ChatroomAdmin;
+    }>
+  > {
     const transactionID = await this._sequelize.transaction();
     let createdChatroom: ChatroomModel;
     let createdSubscription: ChatroomSubscriptionModel;
@@ -267,7 +396,10 @@ class DB_Instance
       };
     }
     try {
-      createdSubscription = await ChatroomSubscriptionModel.create({ chatroomId: createdChatroom.id, userId: createdChatroom.ownerId });
+      createdSubscription = await ChatroomSubscriptionModel.create({
+        chatroomId: createdChatroom.id,
+        userId: createdChatroom.ownerId,
+      });
     } catch {
       await transactionID.rollback();
       return {
@@ -294,7 +426,7 @@ class DB_Instance
       },
     };
   }
-  public async retreiveAllChatrooms(): Promise<DatabaseActionResultWithReturnValue<Chatroom[]>> {
+  public async retrieveAllChatrooms(): Promise<DatabaseActionResultWithReturnValue<Chatroom[]>> {
     try {
       const chatrooms = (await ChatroomModel.findAll()).map((chatroom) => chatroom.dataValues);
       return {
@@ -315,6 +447,48 @@ class DB_Instance
         return {
           success: true,
           value: retrievedChatroom,
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveChatroomWithAllSubscribers(id: number): Promise<
+    DatabaseActionResultWithReturnValue<{
+      chatroom: Chatroom;
+      subscribers: Omit<User, "password" | "createdAt" | "updatedAt">[];
+    }>
+  > {
+    try {
+      const result = await ChatroomModel.findByPk(1, {
+        include: {
+          model: UserModel,
+          association: "subscribers",
+        },
+      });
+      if (result) {
+        const { subscribers: subs } = result;
+
+        return {
+          success: true,
+          value: {
+            chatroom: result.dataValues,
+            subscribers: subs.map((sub) => {
+              return {
+                id: sub.dataValues.id,
+                name: sub.dataValues.name,
+                is_active: sub.dataValues.is_active,
+                is_online: sub.dataValues.is_online,
+              };
+            }),
+          },
         };
       }
       return {
@@ -444,7 +618,9 @@ class DB_Instance
       };
     }
   }
-  public async retrieveChatroomSubscriptionsByUserId(userId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription[]>> {
+  public async retrieveChatroomSubscriptionsByUserId(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomSubscription[]>> {
     try {
       const retrievedChatrooms = await ChatroomSubscriptionModel.findAll({
         where: { userId },
@@ -509,7 +685,9 @@ class DB_Instance
     }
   }
   //ChatroomMessages Database
-  public async createChatroomMessage(message: ChatroomMessageInput): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>> {
+  public async createChatroomMessage(
+    message: ChatroomMessageInput,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>> {
     try {
       const newMessage = await ChatroomMessageModel.create({ ...message });
       return {
@@ -529,14 +707,22 @@ class DB_Instance
       };
     }
   }
-  public async retreiveAllChatroomMessages(chatroomId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage[]>> {
+  public async retrieveAllChatroomMessages(
+    chatroomId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage[]>> {
     try {
       const allMessages = await ChatroomMessageModel.findAll({
         where: { chatroomId },
       });
+      if (allMessages.length > 0) {
+        return {
+          success: true,
+          value: allMessages,
+        };
+      }
       return {
-        success: true,
-        value: allMessages,
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomMessageDoesNotExist,
       };
     } catch {
       return {
@@ -545,7 +731,9 @@ class DB_Instance
       };
     }
   }
-  public async retreiveChatroomMessage(messageID: number): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>> {
+  public async retrieveChatroomMessage(
+    messageID: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomMessage>> {
     try {
       const message = await ChatroomMessageModel.findByPk(messageID);
       if (message) {
@@ -597,7 +785,9 @@ class DB_Instance
     }
   }
   //ChatroomAdmin Database
-  public async createChatroomAdmin(chatroomAdmin: ChatroomAdmin): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin>> {
+  public async createChatroomAdmin(
+    chatroomAdmin: ChatroomAdmin,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin>> {
     try {
       const newChatroomAdmin = await ChatroomAdminModel.create({
         ...chatroomAdmin,
@@ -607,6 +797,12 @@ class DB_Instance
         value: newChatroomAdmin.dataValues,
       };
     } catch (err) {
+      if (err instanceof ForeignKeyConstraintError) {
+        return {
+          success: false,
+          failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure,
+        };
+      }
       if (err instanceof UniqueConstraintError) {
         return {
           success: false,
@@ -619,14 +815,22 @@ class DB_Instance
       };
     }
   }
-  public async retreiveAllChatroomAdminsByChatroomId(chatroomId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin[]>> {
+  public async retrieveAllChatroomAdminsByChatroomId(
+    chatroomId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin[]>> {
     try {
       const foundChatrooms = await ChatroomAdminModel.findAll({
         where: { chatroomId },
       });
+      if (foundChatrooms.length > 0) {
+        return {
+          success: true,
+          value: foundChatrooms.map((item) => item.dataValues),
+        };
+      }
       return {
-        success: true,
-        value: foundChatrooms.map((item) => item.dataValues),
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomAdminDoesNotExist,
       };
     } catch {
       return {
@@ -635,14 +839,22 @@ class DB_Instance
       };
     }
   }
-  public async retreiveAllChatroomAdminsByUserId(userId: number): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin[]>> {
+  public async retrieveAllChatroomAdminsByUserId(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomAdmin[]>> {
     try {
       const foundChatrooms = await ChatroomAdminModel.findAll({
         where: { userId },
       });
+      if (foundChatrooms.length > 0) {
+        return {
+          success: true,
+          value: foundChatrooms.map((item) => item.dataValues),
+        };
+      }
       return {
-        success: true,
-        value: foundChatrooms.map((item) => item.dataValues),
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomAdminDoesNotExist,
       };
     } catch {
       return {
@@ -672,8 +884,94 @@ class DB_Instance
       };
     }
   }
+  //ChatroomBan Database
+  public async createChatroomBan(chatroomBan: ChatroomBan): Promise<DatabaseActionResultWithReturnValue<ChatroomBan>> {
+    try {
+      const result = await ChatroomBanModel.create({ ...chatroomBan });
+      return {
+        success: true,
+        value: result.dataValues,
+      };
+    } catch (err) {
+      if (err instanceof ForeignKeyConstraintError) {
+        return {
+          success: false,
+          failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure,
+        };
+      }
+      if (err instanceof UniqueConstraintError) {
+        return {
+          success: false,
+          failure_id: DatabaseFailureReasons.ChatroomBanAlreadyExists,
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveAllChatroomBansByUserId(
+    userId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomBan[]>> {
+    try {
+      const results = await ChatroomBanModel.findAll({ where: { userId } });
+      if (results.length > 0) {
+        return {
+          success: true,
+          value: results.map((r) => r.dataValues),
+        };
+      }
+      return { success: false, failure_id: DatabaseFailureReasons.ChatroomBanDoesNotExist };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveAllChatroomBansByChatroomId(
+    chatroomId: number,
+  ): Promise<DatabaseActionResultWithReturnValue<ChatroomBan[]>> {
+    try {
+      const results = await ChatroomBanModel.findAll({ where: { chatroomId } });
+      if (results.length > 0) {
+        return {
+          success: true,
+          value: results.map((r) => r.dataValues),
+        };
+      }
+      return { success: false, failure_id: DatabaseFailureReasons.ChatroomBanDoesNotExist };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async deleteChatroomBan(chatroomBan: ChatroomBan): Promise<DatabaseActionResult> {
+    try {
+      const result = await ChatroomBanModel.destroy({ where: { ...chatroomBan } });
+      if (result > 0) {
+        return {
+          success: true,
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomBanDoesNotExist,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
   //SecurityQuestion Database
-  public async createSecurityQuestion(question: string): Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>> {
+  public async createSecurityQuestion(
+    question: string,
+  ): Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>> {
     try {
       const createdQuestion = await SecurityQuestionModel.create({ question });
       return {
@@ -707,7 +1005,9 @@ class DB_Instance
       };
     }
   }
-  public async retrieveSecurityQuestionById(id: number): Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>> {
+  public async retrieveSecurityQuestionById(
+    id: number,
+  ): Promise<DatabaseActionResultWithReturnValue<SecurityQuestion>> {
     try {
       const retrievedQuestion = await SecurityQuestionModel.findByPk(id);
       if (retrievedQuestion) {
@@ -758,9 +1058,15 @@ class DB_Instance
   ): Promise<DatabaseActionResultWithReturnValue<SecurityQuestionAnswer[]>> {
     try {
       const retrievedSecurityQuestions = await SecurityQuestionAnswerModel.findAll({ where: { userId } });
+      if (retrievedSecurityQuestions.length > 0) {
+        return {
+          success: true,
+          value: retrievedSecurityQuestions.map((item) => item.dataValues),
+        };
+      }
       return {
-        success: true,
-        value: retrievedSecurityQuestions.map((item) => item.dataValues),
+        success: false,
+        failure_id: DatabaseFailureReasons.UserDoesNotExist,
       };
     } catch {
       return {
@@ -769,7 +1075,10 @@ class DB_Instance
       };
     }
   }
-  public async deleteSecurityQuestionByAnswerByIds(userId: number, securityQuestionId: number): Promise<DatabaseActionResult> {
+  public async deleteSecurityQuestionByAnswerByIds(
+    userId: number,
+    securityQuestionId: number,
+  ): Promise<DatabaseActionResult> {
     try {
       const deletedSecurityQuestion = await SecurityQuestionAnswerModel.destroy({
         where: { userId, securityQuestionId },

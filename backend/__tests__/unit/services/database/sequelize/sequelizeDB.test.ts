@@ -10,15 +10,18 @@ import User from "../../../../../../shared/types/Models/User";
 import Chatroom from "../../../../../../shared/types/Models/Chatroom";
 import SecurityQuestion from "../../../../../../shared/types/Models/SecurityQuestion";
 import ChatroomSubscription from "../../../../../../shared/types/Models/ChatroomSubscription";
+import SecurityQuestionAnswer from "../../../../../../shared/types/Models/SecurityQuestionAnswer";
+import ChatroomBan from "../../../../../../shared/types/Models/ChatroomBan";
+import ChatroomMessage from "../../../../../../shared/types/Models/ChatroomMessage";
+import ChatroomAdmin from "../../../../../../shared/types/Models/ChatroomAdmin";
 // Test Data
 import testUsers from "./testUsers";
 import testChatroomInputs from "./testChatrooms";
+import testSecurityQuestionAnswers from "./testSecurityAnswers";
 // Data
 import securityQuestions from "../../../../../src/data/securityQuestions";
 // DB Failure Testing
 import DatabaseFailureReasons from "../../../../../src/utils/DatabaseFailureReasons/DatabaseFailureReasons";
-import ChatroomMessage from "../../../../../../shared/types/Models/ChatroomMessage";
-import ChatroomAdmin from "../../../../../../shared/types/Models/ChatroomAdmin";
 
 let db: DB_Instance;
 
@@ -30,12 +33,14 @@ afterAll(() => {
   SequelizeDB.clearInstance();
 });
 
-const Questions: SecurityQuestion[] = [];
 const Users: User[] = [];
 const Chatrooms: Chatroom[] = [];
+const Questions: SecurityQuestion[] = [];
+const Answers: SecurityQuestionAnswer[] = [];
 const ChatroomSubscriptions: ChatroomSubscription[] = [];
 const ChatroomMessages: ChatroomMessage[] = [];
 const ChatroomAdmins: ChatroomAdmin[] = [];
+const ChatroomBans: ChatroomBan[] = [];
 
 describe("-SequelizeDB-", () => {
   describe("-CREATE-", () => {
@@ -58,18 +63,19 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+
     // Users / Security Question Answers
     describe("createUser(user: UserInput)", () => {
       it("can create a valid user and assigns an id of 1, Returns: {success: true, value: <User>} where <User> has all valid expected <User> properties", async () => {
         const validUser = testUsers.validUser;
         const createUserResult = await db.createUser({ name: validUser.name, password: validUser.password }, [
-          { securityQuestionId: 1, answer: "A cool answer to a cool question" },
-          { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
-          { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+          testSecurityQuestionAnswers[0],
+          testSecurityQuestionAnswers[1],
+          testSecurityQuestionAnswers[2],
         ]);
         expect(createUserResult.success).toBe(true);
         if (createUserResult.success) {
-          const newUser = createUserResult.value;
+          const newUser = createUserResult.value.user;
           //id
           expect(typeof newUser.id).toBe("number");
           expect(newUser.id).toBe(1);
@@ -88,22 +94,59 @@ describe("-SequelizeDB-", () => {
           //is_online
           expect(newUser.is_online).toBe(true);
           Users.push(newUser);
+          const answers = createUserResult.value.answers;
+          answers.forEach((answer, idx) => {
+            expect(answer.answer).toBe(testSecurityQuestionAnswers[idx].answer);
+            expect(answer.securityQuestionId).toBe(testSecurityQuestionAnswers[idx].securityQuestionId);
+            expect(answer.userId).toBe(newUser.id);
+            Answers.push(answer);
+          });
         }
       });
       it("can create a second valid user, and increments the id to 2, Returns: {success: true, value: <User>}", async () => {
         const validUser2 = testUsers.validUser2;
         const createUserResult = await db.createUser({ name: validUser2.name, password: validUser2.password }, [
-          { securityQuestionId: 1, answer: "A cool answer to a cool question" },
-          { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
-          { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+          testSecurityQuestionAnswers[0],
+          testSecurityQuestionAnswers[1],
+          testSecurityQuestionAnswers[2],
         ]);
         expect(createUserResult.success).toBe(true);
         if (createUserResult.success) {
-          const newUser = createUserResult.value;
+          const newUser = createUserResult.value.user;
           expect(newUser.id).toBe(2);
           expect(newUser.name).toBe(validUser2.name);
           expect(newUser.password).toBe(validUser2.password);
           Users.push(newUser);
+          const answers = createUserResult.value.answers;
+          answers.forEach((answer, idx) => {
+            expect(answer.answer).toBe(testSecurityQuestionAnswers[idx].answer);
+            expect(answer.securityQuestionId).toBe(testSecurityQuestionAnswers[idx].securityQuestionId);
+            expect(answer.userId).toBe(newUser.id);
+            Answers.push(answer);
+          });
+        }
+      });
+      it("can create a third valid user, increments id to 3, returns {success: true, value: <User>}", async () => {
+        const validUser3 = testUsers.validUser3;
+        const createUserResult = await db.createUser({ name: validUser3.name, password: validUser3.password }, [
+          testSecurityQuestionAnswers[0],
+          testSecurityQuestionAnswers[1],
+          testSecurityQuestionAnswers[2],
+        ]);
+        expect(createUserResult.success).toBe(true);
+        if (createUserResult.success) {
+          const newUser = createUserResult.value.user;
+          expect(newUser.id).toBe(3);
+          expect(newUser.name).toBe(validUser3.name);
+          expect(newUser.password).toBe(validUser3.password);
+          Users.push(newUser);
+          const answers = createUserResult.value.answers;
+          answers.forEach((answer, idx) => {
+            expect(answer.answer).toBe(testSecurityQuestionAnswers[idx].answer);
+            expect(answer.securityQuestionId).toBe(testSecurityQuestionAnswers[idx].securityQuestionId);
+            expect(answer.userId).toBe(newUser.id);
+            Answers.push(answer);
+          });
         }
       });
       it("will refuse to create a user with a username that does not meet regex requirements (too short). Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameInvalid}", async () => {
@@ -113,11 +156,7 @@ describe("-SequelizeDB-", () => {
             name: userWithTooShortUsername.name,
             password: userWithTooShortUsername.password,
           },
-          [
-            { securityQuestionId: 1, answer: "A cool answer to a cool question" },
-            { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
-            { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
-          ],
+          [testSecurityQuestionAnswers[0], testSecurityQuestionAnswers[1], testSecurityQuestionAnswers[2]],
         );
         expect(createUserResult.success).toBe(false);
         if (!createUserResult.success) {
@@ -131,11 +170,7 @@ describe("-SequelizeDB-", () => {
             name: userWithTooLongUsername.name,
             password: userWithTooLongUsername.password,
           },
-          [
-            { securityQuestionId: 1, answer: "A cool answer to a cool question" },
-            { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
-            { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
-          ],
+          [testSecurityQuestionAnswers[0], testSecurityQuestionAnswers[1], testSecurityQuestionAnswers[2]],
         );
         expect(createUserResult.success).toBe(false);
         if (!createUserResult.success) {
@@ -145,9 +180,9 @@ describe("-SequelizeDB-", () => {
       it("will refuse to create a user with the same name as an existing user. Returns: {success: false, failure_id: DatabaseFailureReasons.UsernameAlreadyExists}", async () => {
         const validUser = Users[0];
         const createUserResult = await db.createUser({ name: validUser.name, password: validUser.password }, [
-          { securityQuestionId: 1, answer: "A cool answer to a cool question" },
-          { securityQuestionId: 2, answer: "A different cool answer to a different cool question" },
-          { securityQuestionId: 3, answer: "The coolest answers to the coolest question" },
+          testSecurityQuestionAnswers[0],
+          testSecurityQuestionAnswers[1],
+          testSecurityQuestionAnswers[2],
         ]);
         expect(createUserResult.success).toBe(false);
         if (!createUserResult.success) {
@@ -155,6 +190,7 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+
     // Chatrooms
     describe("createChatroom(chatroom: ChatroomInput)", () => {
       it("can create a chatroom with a null password and valid name and existing userId, Returns: {success: true, value: {chatroom: <Chatroom>, subscription: <ChatroomSubscription>, admin: <ChatroomAdmin>}}", async () => {
@@ -279,6 +315,7 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+
     // Chatroom Subscription
     describe("createChatroomSubscription(chatroomSusbcription: ChatroomSubscription)", () => {
       // it("test print", async () => {
@@ -293,8 +330,8 @@ describe("-SequelizeDB-", () => {
       //   { chatroomId: 2, userId: 2 },
       //   { chatroomId: 3, userId: 1 }
       // ]
-      it("will create a novel combination of userId/chatroomId of existing valid userIds/chatroomIds", async () => {
-        const createdSubscription = await db.createChatroomSubscription({ chatroomId: 2, userId: 1 });
+      it("can create a subscription if provided a novel combination of userId/chatroomId", async () => {
+        const createdSubscription = await db.createChatroomSubscription({ chatroomId: 1, userId: 2 });
         expect(createdSubscription.success).toBe(true);
         if (createdSubscription.success) {
           ChatroomSubscriptions.push(createdSubscription.value);
@@ -315,6 +352,7 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+
     // Chatroom Message
     describe("createChatroomMessage(message: ChatroomMessageInput)", () => {
       it("can create a valid chatroomMessage if given valid foreign keys", async () => {
@@ -382,7 +420,12 @@ describe("-SequelizeDB-", () => {
       });
       it("will refuse to create a chatroomMessage if given an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure}", async () => {
         const content = "A failed message ;( ;(";
-        const createdMessage = await db.createChatroomMessage({ chatroomId: 1, userId: 100000, deleted: false, content });
+        const createdMessage = await db.createChatroomMessage({
+          chatroomId: 1,
+          userId: 100000,
+          deleted: false,
+          content,
+        });
         expect(createdMessage.success).toBe(false);
         if (!createdMessage.success) {
           expect(createdMessage.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
@@ -390,13 +433,19 @@ describe("-SequelizeDB-", () => {
       });
       it("will refuse to create a chatroomMessage if given an invalid chatroomId, returns {success: false, failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure}", async () => {
         const content = "A failed message ;( ;(";
-        const createdMessage = await db.createChatroomMessage({ chatroomId: 100000, userId: 1, deleted: false, content });
+        const createdMessage = await db.createChatroomMessage({
+          chatroomId: 100000,
+          userId: 1,
+          deleted: false,
+          content,
+        });
         expect(createdMessage.success).toBe(false);
         if (!createdMessage.success) {
           expect(createdMessage.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
         }
       });
     });
+
     // Chatroom Admin
     describe("createChatroomAdmin(chatroomAdmin: ChatroomAdmin)", () => {
       // it("test print", async () => {
@@ -418,6 +467,7 @@ describe("-SequelizeDB-", () => {
           const { chatroomId, userId } = createdAdmin.value;
           expect(chatroomId).toBe(1);
           expect(userId).toBe(2);
+          ChatroomAdmins.push(createdAdmin.value);
         }
       });
       it("will refuse to create a new ChatroomAdmin given a set of duplicate foreign keys, returns {success: false, failure_id: DatabaseFailureReasons.ChatroomAdminAlreadyExists}", async () => {
@@ -435,45 +485,47 @@ describe("-SequelizeDB-", () => {
         }
       });
       it("will refuse to create a ChatroomAdmin given an invalid chatroomId, returns {success: false, failure_id: DatabaseFailureReasons.ForeignKeyConstraintFailure}", async () => {
-        const createdAdmin = await db.createChatroomAdmin({ userId: 1, chatroomId: 10000000000000 });
+        const createdAdmin = await db.createChatroomAdmin({ userId: 1, chatroomId: 1000000 });
         expect(createdAdmin.success).toBe(false);
         if (!createdAdmin.success) {
           expect(createdAdmin.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
         }
       });
     });
-  });
-  describe("-RETREIVE", () => {
-    //Security Questions
-    describe("retieveAllSecurityQuestions()", () => {
-      it("returns a an array of security questions", async () => {
-        const results = await db.retrieveAllSecurityQuestions();
-        expect(results.success).toBe(true);
-        if (results.success) {
-          expect(Array.isArray(results.value)).toBe(true);
-          expect(results.value.length).toBe(Questions.length);
+
+    // Chatroom Ban
+    describe("createChatroomBan(chatroomBan: Chatroomban)", () => {
+      it("can create a new ChatroomBan given novel valid keys", async () => {
+        const bannedUser = await db.createChatroomBan({ chatroomId: 1, userId: 3 });
+        expect(bannedUser.success).toBe(true);
+        if (bannedUser.success) {
+          const { chatroomId, userId } = bannedUser.value;
+          expect(chatroomId).toBe(1);
+          expect(userId).toBe(3);
+          ChatroomBans.push(bannedUser.value);
         }
       });
-    });
-    describe("retrieveSecurityQuestionById(id: number)", () => {
-      it("returns a question when given a valid id", async () => {
-        const result = await db.retrieveSecurityQuestionById(Questions[0].id);
-        expect(result.success).toBe(true);
-        if (result.success) {
-          expect(result.value.question).toBe(Questions[0].question);
-        }
-      });
-      it("when given an invalid id will return {success: false, failure_id: DatabaseFailureReasons.SecurityQuestionDoesNotExist}", async () => {
-        const result = await db.retrieveSecurityQuestionById(10000000);
+      it("will refuse to create a new ChatroomBan given an invalid chatroomId", async () => {
+        const result = await db.createChatroomBan({ chatroomId: 1000, userId: 1 });
         expect(result.success).toBe(false);
         if (!result.success) {
-          expect(result.failure_id).toBe(DatabaseFailureReasons.SecurityQuestionDoesNotExist);
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
+        }
+      });
+      it("will refuse to create a new Chatroomban given an invalid userId", async () => {
+        const result = await db.createChatroomBan({ chatroomId: 1, userId: 1000 });
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ForeignKeyConstraintFailure);
         }
       });
     });
+  });
+  describe("-RETRIEVE", () => {
+    //! Request Individual Items
     //Users
     describe("retrieveUserById(id: number)", () => {
-      it("can retreive a user that matches to a valid id, Returns: {success: true, value: <User>} where <User> has all valid expected <User> properties", async () => {
+      it("can retrieve a user that matches to a valid id, Returns: {success: true, value: <User>} where <User> has all valid expected <User> properties", async () => {
         const retrievedUserResult = await db.retrieveUserById(Users[0].id);
         expect(retrievedUserResult.success).toBe(true);
         if (retrievedUserResult.success) {
@@ -539,10 +591,11 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+
     //Chatrooms
-    describe("retreiveAllChatrooms()", () => {
+    describe("retrieveAllChatrooms()", () => {
       it("can retrieve all listed chatrooms and their ids", async () => {
-        const retrievedChatrooms = await db.retreiveAllChatrooms();
+        const retrievedChatrooms = await db.retrieveAllChatrooms();
         expect(retrievedChatrooms.success).toBe(true);
         if (retrievedChatrooms.success) {
           const rooms = retrievedChatrooms.value;
@@ -552,10 +605,10 @@ describe("-SequelizeDB-", () => {
     });
     describe("retrieveChatroomById(id: number)", () => {
       it("can retrieve a chatroom with a valid chatroom id, Returns {success: true, value: <Chatroom>}", async () => {
-        const retreived = await db.retrieveChatroomById(Chatrooms[0].id);
-        expect(retreived.success).toBe(true);
-        if (retreived.success) {
-          const newChatroom = retreived.value;
+        const retrieved = await db.retrieveChatroomById(Chatrooms[0].id);
+        expect(retrieved.success).toBe(true);
+        if (retrieved.success) {
+          const newChatroom = retrieved.value;
           const { id, createdAt, name, ownerId, password, updatedAt } = newChatroom;
           expect(typeof id).toBe("number");
           expect(id).toBe(1);
@@ -577,6 +630,404 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
+
+    //Security Questions
+    describe("retieveAllSecurityQuestions()", () => {
+      it("returns a an array of security questions", async () => {
+        const results = await db.retrieveAllSecurityQuestions();
+        expect(results.success).toBe(true);
+        if (results.success) {
+          expect(Array.isArray(results.value)).toBe(true);
+          expect(results.value.length).toBe(Questions.length);
+        }
+      });
+    });
+    describe("retrieveSecurityQuestionById(id: number)", () => {
+      it("returns a question when given a valid id", async () => {
+        const result = await db.retrieveSecurityQuestionById(Questions[0].id);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          expect(result.value.question).toBe(Questions[0].question);
+        }
+      });
+      it("when given an invalid id will return {success: false, failure_id: DatabaseFailureReasons.SecurityQuestionDoesNotExist}", async () => {
+        const result = await db.retrieveSecurityQuestionById(10000000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.SecurityQuestionDoesNotExist);
+        }
+      });
+    });
+
+    //Security Question Answers
+    describe("retrieveAllSecurityQuestionsAnswersByUserId(userId: number)", () => {
+      it("finds and returns all of a users prior answered security questions", async () => {
+        const userIdToFind = Users[Math.floor(Math.random() * Users.length)].id;
+        const answersToMatch = Answers.filter((answer) => answer.userId === userIdToFind);
+        const retrievedAnswers = await db.retrieveAllSecurityQuestionsAnswersByUserId(userIdToFind);
+        expect(retrievedAnswers.success).toBe(true);
+        if (retrievedAnswers.success) {
+          retrievedAnswers.value.forEach((answer) => {
+            const matchingAnswer = answersToMatch.find(
+              (item) =>
+                item.securityQuestionId === answer.securityQuestionId &&
+                item.userId === answer.userId &&
+                item.answer === answer.answer,
+            );
+            expect(matchingAnswer).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when supplied an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist}", async () => {
+        const retrievedAnswers = await db.retrieveAllSecurityQuestionsAnswersByUserId(10000);
+        expect(retrievedAnswers.success).toBe(false);
+        if (!retrievedAnswers.success) {
+          expect(retrievedAnswers.failure_id).toBe(DatabaseFailureReasons.UserDoesNotExist);
+        }
+      });
+    });
+    describe("retrieveSecurityQuestionAnswerByIds(userId: number, securityQuestionId: number)", () => {
+      it("can retrieve a specific securityQuestionAnswer when given valid inputs, returns {success: true, value: <SecurityQuestionAnswer>}", async () => {
+        const randomAnswer = Answers[Math.floor(Math.random() * Answers.length)];
+        const retrievedAnswer = await db.retrieveSecurityQuestionAnswerByIds(
+          randomAnswer.userId,
+          randomAnswer.securityQuestionId,
+        );
+        expect(retrievedAnswer.success).toBe(true);
+        if (retrievedAnswer.success) {
+          const { answer, securityQuestionId, userId } = retrievedAnswer.value;
+          expect(answer).toBe(randomAnswer.answer);
+          expect(securityQuestionId).toBe(randomAnswer.securityQuestionId);
+          expect(userId).toBe(randomAnswer.userId);
+        }
+      });
+      it("will fail gracefully to find non-existent SecurityQuestionAnswers when given an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.SecurityQuestionAnswerDoesNotExist} ", async () => {
+        const retrievedAnswer = await db.retrieveSecurityQuestionAnswerByIds(100000000000, 1);
+        expect(retrievedAnswer.success).toBe(false);
+        if (!retrievedAnswer.success) {
+          expect(retrievedAnswer.failure_id).toBe(DatabaseFailureReasons.SecurityQuestionAnswerDoesNotExist);
+        }
+      });
+      it("will fail gracefully to find non-existent SecurityQuestionAnswers when given an invalid securityQuestionId, returns {success: false, failure_id: DatabaseFailureReasons.SecurityQuestionAnswerDoesNotExist} ", async () => {
+        const retrievedAnswer = await db.retrieveSecurityQuestionAnswerByIds(1, 10000000000);
+        expect(retrievedAnswer.success).toBe(false);
+        if (!retrievedAnswer.success) {
+          expect(retrievedAnswer.failure_id).toBe(DatabaseFailureReasons.SecurityQuestionAnswerDoesNotExist);
+        }
+      });
+    });
+
+    //Chatroom Subscriptions
+    describe("retrieveChatroomSubscriptionsByChatroomId(chatroomId:number)", () => {
+      // it("test print", async () => {
+      //   console.log("\n\n\n\n\n\n\n\n\n\n");
+      //   console.log(ChatroomSubscriptions);
+      //   console.log("\n\n\n\n\n\n\n\n\n\n");
+      //   expect(true).toBe(true);
+      // });
+      // Current Existing Per Above:
+      // [
+      //   { chatroomId: 1, userId: 1 },
+      //   { chatroomId: 1, userId: 2 },
+      //   { chatroomId: 2, userId: 2 },
+      //   { chatroomId: 3, userId: 1 }
+      // ]
+      it("returns all relevant subscriptions to a chosen chatroom in an array if given a valid chatroom id, Returns {success: true, value: ChatroomSubscription[]}", async () => {
+        const subscriptionsToChatroom1 = ChatroomSubscriptions.filter((sub) => sub.chatroomId === 1);
+        const results = await db.retrieveChatroomSubscriptionsByChatroomId(1);
+        expect(results.success).toBe(true);
+        if (results.success) {
+          const value = results.value;
+          value.forEach((v) => {
+            expect(
+              subscriptionsToChatroom1.find((item) => item.chatroomId === v.chatroomId && item.userId === v.userId),
+            ).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when given an invalid chatroomId, returns {success: false, failure_id: DatabaseFailureReasons.ChatroomDoesNotExist}", async () => {
+        const results = await db.retrieveChatroomSubscriptionsByChatroomId(1000);
+        expect(results.success).toBe(false);
+        if (!results.success) {
+          expect(results.failure_id).toBe(DatabaseFailureReasons.ChatroomSubscriptionDoesNotExist);
+        }
+      });
+    });
+    describe("retrieveChatroomSubscriptionsByUserId(userId: number)", () => {
+      // CURRENT AT THIS POINT
+      // [
+      //   { chatroomId: 1, userId: 1 },
+      //   { chatroomId: 1, userId: 2 }
+      //   { chatroomId: 2, userId: 2 },
+      //   { chatroomId: 3, userId: 1 },
+      // ]
+      it("retrieves all existing chatroom subscriptions when provided a valid userId", async () => {
+        const filtered = ChatroomSubscriptions.filter((i) => i.userId === 1);
+        const results = await db.retrieveChatroomSubscriptionsByUserId(1);
+        expect(results.success).toBe(true);
+        if (results.success) {
+          const { value } = results;
+          value.forEach((i) => {
+            expect(filtered.find((j) => i.chatroomId === j.chatroomId && i.userId === j.userId)).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when supplied an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist", async () => {
+        const results = await db.retrieveChatroomSubscriptionsByUserId(1000);
+        expect(results.success).toBe(false);
+        if (!results.success) {
+          expect(results.failure_id).toBe(DatabaseFailureReasons.ChatroomSubscriptionDoesNotExist);
+        }
+      });
+    });
+
+    //Chatroom Admins
+    describe("retrieveAllChatroomAdminsByChatroomId(id: number)", () => {
+      // Existing at this point:
+      // [
+      //   { chatroomId: 1, userId: 1 },
+      //   { chatroomId: 1, userId: 2 },
+      //   { chatroomId: 2, userId: 2 },
+      //   { chatroomId: 3, userId: 1 },
+      // ]
+      it("returns all existing chatroom admins when provided a valid id", async () => {
+        const filteredAdmins = ChatroomAdmins.filter((admin) => admin.chatroomId === 1);
+        const requestedAdmins = await db.retrieveAllChatroomAdminsByChatroomId(1);
+        expect(requestedAdmins.success).toBe(true);
+        if (requestedAdmins.success) {
+          requestedAdmins.value.forEach((admin) => {
+            expect(filteredAdmins.find((item) => item.userId === admin.userId)).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid chatroomId, returns {success: false, failure_id: DatabaseFailureReasons.ChatroomDoesNotExist}", async () => {
+        const result = await db.retrieveAllChatroomAdminsByChatroomId(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomAdminDoesNotExist);
+        }
+      });
+    });
+    describe("retrieveAllChatroomAdminsByUserId(id: number)", () => {
+      it("returns all existing chatroom admins when provided a valid id", async () => {
+        const filteredAdmins = ChatroomAdmins.filter((admin) => admin.userId === 1);
+        const requestedAdmins = await db.retrieveAllChatroomAdminsByUserId(1);
+        expect(requestedAdmins.success).toBe(true);
+        if (requestedAdmins.success) {
+          requestedAdmins.value.forEach((admin) => {
+            expect(filteredAdmins.find((item) => item.chatroomId === admin.chatroomId)).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist}", async () => {
+        const result = await db.retrieveAllChatroomAdminsByUserId(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomAdminDoesNotExist);
+        }
+      });
+    });
+
+    //Chatroom Bans
+    describe("retrieveAllChatroomBansByUserId(userId: number)", () => {
+      it("can find existing bans for a user, returns {success: true, value: <ChatroomBan[]>}", async () => {
+        const filteredBans = ChatroomBans.filter((ban) => ban.userId === 3);
+        const requestedBans = await db.retrieveAllChatroomBansByUserId(3);
+        expect(requestedBans.success).toBe(true);
+        if (requestedBans.success) {
+          expect(requestedBans.value.length).toBeGreaterThan(0);
+          expect(requestedBans.value.length).toBe(filteredBans.length);
+        }
+      });
+      it("fails gracefully when requesting a userId that doesn't exist, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist", async () => {
+        const requestedBans = await db.retrieveAllChatroomBansByUserId(1000);
+        expect(requestedBans.success).toBe(false);
+        if (!requestedBans.success) {
+          expect(requestedBans.failure_id).toBe(DatabaseFailureReasons.ChatroomBanDoesNotExist);
+        }
+      });
+    });
+    describe("retrieveAllChatroomBansByChatroomId(chatroomId: number)", () => {
+      it("can find existing bans for a chatroom, returns {success: true, value: <ChatroomBan[]>}", async () => {
+        const filteredBans = ChatroomBans.filter((ban) => ban.chatroomId === 1);
+        const requestedBans = await db.retrieveAllChatroomBansByChatroomId(1);
+        expect(requestedBans.success).toBe(true);
+        if (requestedBans.success) {
+          expect(requestedBans.value.length).toBeGreaterThan(0);
+          expect(requestedBans.value.length).toBe(filteredBans.length);
+        }
+      });
+      it("fails gracefully when requesting a chatroomId that doesn't exist, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist", async () => {
+        const requestedBans = await db.retrieveAllChatroomBansByChatroomId(1000);
+        expect(requestedBans.success).toBe(false);
+        if (!requestedBans.success) {
+          expect(requestedBans.failure_id).toBe(DatabaseFailureReasons.ChatroomBanDoesNotExist);
+        }
+      });
+    });
+
+    //Chatroom Messages
+    describe("retrieveAllChatroomMessages(chatroomId: number)", () => {
+      /* Existing Messages
+      [
+        {
+          id: 1,
+          chatroomId: 1,
+          userId: 1,
+          deleted: false,
+          content: "This is my first message! Isn't that cool!",
+          updatedAt: 2023-09-04T22:12:03.559Z,
+          createdAt: 2023-09-04T22:12:03.559Z
+        },
+        {
+          id: 2,
+          chatroomId: 2,
+          userId: 2,
+          deleted: false,
+          content: 'This is my second message in a different chatroom! This is so cool!',
+          updatedAt: 2023-09-04T22:12:03.569Z,
+          createdAt: 2023-09-04T22:12:03.569Z
+        },
+        {
+          id: 3,
+          chatroomId: 1,
+          userId: 1,
+          deleted: false,
+          content: 'Wow! A Third Message!',
+          updatedAt: 2023-09-04T22:12:03.579Z,
+          createdAt: 2023-09-04T22:12:03.579Z
+        }
+      ]
+      */
+      it("is able to find all chatroom messages if provided a valid chatroom id, returns {success: true, value: ChatroomMessage[]}", async () => {
+        const filteredMessages = ChatroomMessages.filter((i) => i.chatroomId === 1);
+        const results = await db.retrieveAllChatroomMessages(1);
+        expect(results.success).toBe(true);
+        if (results.success) {
+          const { value } = results;
+          expect(value.length).toBe(filteredMessages.length);
+          value.forEach((i) => {
+            expect(filteredMessages.find((j) => j.chatroomId === i.chatroomId && j.userId === i.userId)).not.toBe(
+              undefined,
+            );
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid chatroomId, returns {success: false, failure_id: DatabaseFailureReasons.ChatroomMessageDoesNotExist}", async () => {
+        const result = await db.retrieveAllChatroomMessages(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomMessageDoesNotExist);
+        }
+      });
+    });
+    describe("retrieveChatroomMessage(messageID: number)", () => {
+      it("is able to return a single chatroom message when provided a valid id", async () => {
+        const message = ChatroomMessages.find((i) => i.id === 1);
+        const result = await db.retrieveChatroomMessage(1);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const { value } = result;
+          expect(value.chatroomId).toBe(message?.chatroomId);
+          expect(value.content).toBe(message?.content);
+          expect(value.deleted).toBe(message?.deleted);
+          expect(value.userId).toBe(message?.userId);
+        }
+      });
+      it("fails gracefully when provided an invalid chatroom message id", async () => {
+        const result = await db.retrieveChatroomMessage(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomMessageDoesNotExist);
+        }
+      });
+    });
+
+    //! Request Joined Items
+    //Chatroom With All Subscribers: Names, Ids
+
+    //Chatroom with All Banned Users: Names, Ids
+
+    //Chatroom With All Admins: Names, Ids
+
+    //User with All Susbcribed Chatrooms: Names, Ids
+    describe("retrieveUserAndAllSubscribedChatrooms(userId: number)", () => {
+      it("can return a user and all their associated subs when provided a valid userId", async () => {
+        const chosenUserId = 1;
+        const result = await db.retrieveUserAndAllSubscribedChatrooms(chosenUserId);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const filteredSubs = ChatroomSubscriptions.filter((sub) => sub.userId === chosenUserId);
+          const user = testUsers.validUser;
+          const returnedUser = result.value.user;
+          const returnedSubbedRooms = result.value.chatrooms;
+          expect(user.name).toBe(returnedUser.name);
+          filteredSubs.forEach((sub) => {
+            returnedSubbedRooms.find((i) => (i.id = sub.chatroomId));
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist", async () => {
+        const result = await db.retrieveUserAndAllSubscribedChatrooms(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.UserDoesNotExist);
+        }
+      });
+    });
+    //User With All Admin Privledged Chatrooms: Names, Ids
+    describe("retrieveUserAndAllAdminChatrooms(userId: number)", () => {
+      it("can return a user and all their associated admined rooms when provided a valid userId", async () => {
+        const chosenUserId = 1;
+        const result = await db.retrieveUserAndAllSubscribedChatrooms(chosenUserId);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const filteredAdmins = ChatroomAdmins.filter((admin) => admin.userId === chosenUserId);
+          const user = testUsers.validUser;
+          const returnedUser = result.value.user;
+          const returnedRooms = result.value.chatrooms;
+          expect(user.name).toBe(returnedUser.name);
+          filteredAdmins.forEach((admin) => {
+            returnedRooms.find((i) => (i.id = admin.chatroomId));
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist", async () => {
+        const result = await db.retrieveUserAndAllAdminChatrooms(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.UserDoesNotExist);
+        }
+      });
+    });
+    //User With All Banned Chatrooms: Names, Ids
+    describe("retrieveUserAndAllBannedChatrooms(userId: number)", () => {
+      it("can return a user and all their associated banned rooms when provided a valid userId", async () => {
+        const chosenUserId = 1;
+        const result = await db.retrieveUserAndAllBannedChatrooms(chosenUserId);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const filteredBans = ChatroomBans.filter((ban) => ban.userId === chosenUserId);
+          const user = testUsers.validUser;
+          const returnedUser = result.value.user;
+          const returnedRooms = result.value.chatrooms;
+          expect(user.name).toBe(returnedUser.name);
+          filteredBans.forEach((ban) => {
+            returnedRooms.find((i) => (i.id = ban.chatroomId));
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid userId, returns {success: false, failure_id: DatabaseFailureReasons.UserDoesNotExist", async () => {
+        const result = await db.retrieveUserAndAllBannedChatrooms(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.UserDoesNotExist);
+        }
+      });
+    });
+    //User With All Chosen Security Questions: Question, Ids
+
+    //User With All Security Answers: Answer, Question Ids
   });
   describe("-UPDATE-", () => {
     //Users
@@ -742,7 +1193,7 @@ describe("-SequelizeDB-", () => {
       it("can delete a chatroom when provided a valid id, returns {success: true}", async () => {
         const deleteResult = await db.deleteChatroomById(Chatrooms[Chatrooms.length - 1].id);
         expect(deleteResult.success).toBe(true);
-        const allChatrooms = await db.retreiveAllChatrooms();
+        const allChatrooms = await db.retrieveAllChatrooms();
         expect(allChatrooms.success ? allChatrooms.value.length : -1).toBe(Chatrooms.length - 1);
         Chatrooms.pop();
       });
