@@ -22,19 +22,17 @@ interface ChatroomDatabase {
   ) => Promise<DatabaseActionResultWithReturnValue<Chatroom>>;
   deleteChatroomById: (id: number) => Promise<DatabaseActionResult>;
   //! Combined Request
-
-  /*
-
   retrieveChatroomWithAllSubscribers: (id: number) => Promise<
     DatabaseActionResultWithReturnValue<{
       chatroom: Chatroom;
-      subscribers: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   >;
+  /*
   retrieveChatroomWithAllBans: (id: number) => Promise<
     DatabaseActionResultWithReturnValue<{
       chatroom: Chatroom;
-      bans: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   >;
   retrieveChatroomWithAllAdmins: (
@@ -42,7 +40,7 @@ interface ChatroomDatabase {
   ) => Promise<
     DatabaseActionResultWithReturnValue<{
       chatroom: Chatroom;
-      admins: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   >;
 

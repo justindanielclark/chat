@@ -591,7 +591,6 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-
     //Chatrooms
     describe("retrieveAllChatrooms()", () => {
       it("can retrieve all listed chatrooms and their ids", async () => {
@@ -630,7 +629,6 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-
     //Security Questions
     describe("retieveAllSecurityQuestions()", () => {
       it("returns a an array of security questions", async () => {
@@ -658,7 +656,6 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-
     //Security Question Answers
     describe("retrieveAllSecurityQuestionsAnswersByUserId(userId: number)", () => {
       it("finds and returns all of a users prior answered security questions", async () => {
@@ -716,7 +713,6 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-
     //Chatroom Subscriptions
     describe("retrieveChatroomSubscriptionsByChatroomId(chatroomId:number)", () => {
       // it("test print", async () => {
@@ -780,7 +776,6 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-
     //Chatroom Admins
     describe("retrieveAllChatroomAdminsByChatroomId(id: number)", () => {
       // Existing at this point:
@@ -827,7 +822,6 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-
     //Chatroom Bans
     describe("retrieveAllChatroomBansByUserId(userId: number)", () => {
       it("can find existing bans for a user, returns {success: true, value: <ChatroomBan[]>}", async () => {
@@ -865,7 +859,6 @@ describe("-SequelizeDB-", () => {
         }
       });
     });
-
     //Chatroom Messages
     describe("retrieveAllChatroomMessages(chatroomId: number)", () => {
       /* Existing Messages
@@ -945,7 +938,32 @@ describe("-SequelizeDB-", () => {
 
     //! Request Joined Items
     //Chatroom With All Subscribers: Names, Ids
-
+    describe("retrieveChatroomWithAllSubscribedUsers(chatroomId: number)", () => {
+      it("is able to retrieve an existing chatroom with a valid id and return an array of all current subscribers", async () => {
+        const retreivedChatroomId = 1;
+        const result = await db.retrieveChatroomWithAllSubscribers(retreivedChatroomId);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const { chatroom, users } = result.value;
+          const chatroomInfo = testChatroomInputs.validChatroom1;
+          expect(chatroom.id).toBe(retreivedChatroomId);
+          expect(chatroom.name).toBe(chatroomInfo.name);
+          expect(chatroom.ownerId).toBe(chatroomInfo.ownerId);
+          expect(chatroom.password).toBe(chatroom.password);
+          const filteredSubs = ChatroomSubscriptions.filter((sub) => sub.chatroomId === 1);
+          users.forEach((user) => {
+            expect(filteredSubs.find((sub) => sub.userId === user.id)).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid/nonexistant chatroomId, returns {success: false, DatabaseFailureReasons.ChatroomDoesNotExist}", async () => {
+        const result = await db.retrieveChatroomWithAllSubscribers(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomDoesNotExist);
+        }
+      });
+    });
     //Chatroom with All Banned Users: Names, Ids
 
     //Chatroom With All Admins: Names, Ids

@@ -463,7 +463,7 @@ class DB_Instance
   public async retrieveChatroomWithAllSubscribers(id: number): Promise<
     DatabaseActionResultWithReturnValue<{
       chatroom: Chatroom;
-      subscribers: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   > {
     try {
@@ -480,7 +480,7 @@ class DB_Instance
           success: true,
           value: {
             chatroom: result.dataValues,
-            subscribers: subs.map((sub) => {
+            users: subs.map((sub) => {
               return {
                 id: sub.dataValues.id,
                 name: sub.dataValues.name,
