@@ -76,6 +76,7 @@ class DB_Instance
       host: connParams.host,
       port: connParams.port,
       dialect: "mysql",
+      logging: false,
     });
     initAllModels(this._sequelize);
     setupAssoc();
@@ -250,12 +251,12 @@ class DB_Instance
       const result = await UserModel.findByPk(userId, {
         include: { model: ChatroomModel, association: "bannedFrom", attributes: ["name", "id"] },
       });
-      if (result) {
+      if (result !== null) {
         return {
           success: true,
           value: {
             user: result.dataValues,
-            chatrooms: result.subscribedTo.map((sub) => {
+            chatrooms: result.bannedFrom.map((sub) => {
               return { name: sub.dataValues.name, id: sub.dataValues.id };
             }),
           },
@@ -467,13 +468,14 @@ class DB_Instance
     }>
   > {
     try {
-      const result = await ChatroomModel.findByPk(1, {
+      const result = await ChatroomModel.findByPk(id, {
         include: {
           model: UserModel,
           association: "subscribers",
         },
       });
-      if (result) {
+
+      if (result !== null) {
         const { subscribers: subs } = result;
 
         return {
@@ -486,6 +488,91 @@ class DB_Instance
                 name: sub.dataValues.name,
                 is_active: sub.dataValues.is_active,
                 is_online: sub.dataValues.is_online,
+              };
+            }),
+          },
+        };
+      }
+
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveChatroomWithAllBans(id: number): Promise<
+    DatabaseActionResultWithReturnValue<{
+      chatroom: Chatroom;
+      users: Omit<User, "password" | "createdAt" | "updatedAt">[];
+    }>
+  > {
+    try {
+      const result = await ChatroomModel.findByPk(id, {
+        include: {
+          model: UserModel,
+          association: "bans",
+        },
+      });
+      if (result) {
+        const { bans: subs } = result;
+
+        return {
+          success: true,
+          value: {
+            chatroom: result.dataValues,
+            users: subs.map((sub) => {
+              return {
+                id: sub.dataValues.id,
+                name: sub.dataValues.name,
+                is_active: sub.dataValues.is_active,
+                is_online: sub.dataValues.is_online,
+              };
+            }),
+          },
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
+  public async retrieveChatroomWithAllAdmins(id: number): Promise<
+    DatabaseActionResultWithReturnValue<{
+      chatroom: Chatroom;
+      users: Omit<User, "password" | "createdAt" | "updatedAt">[];
+    }>
+  > {
+    try {
+      const result = await ChatroomModel.findByPk(id, {
+        include: {
+          model: UserModel,
+          association: "admins",
+        },
+      });
+      if (result) {
+        const { admins } = result;
+
+        return {
+          success: true,
+          value: {
+            chatroom: result.dataValues,
+            users: admins.map((admin) => {
+              return {
+                id: admin.dataValues.id,
+                name: admin.dataValues.name,
+                is_active: admin.dataValues.is_active,
+                is_online: admin.dataValues.is_online,
               };
             }),
           },

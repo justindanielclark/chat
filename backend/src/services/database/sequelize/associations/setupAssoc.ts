@@ -33,7 +33,7 @@ export default function setupAssoc() {
   });
   Chatroom.hasMany(ChatroomMessage, {
     sourceKey: "id",
-    foreignKey: "chatroomId",
+    foreignKey: "messages",
     as: "chatroomMessages",
   });
   Chatroom.belongsToMany(User, {
@@ -41,8 +41,8 @@ export default function setupAssoc() {
     as: "subscribers",
     foreignKey: "chatroomId",
   });
-  Chatroom.belongsToMany(User, { through: ChatroomAdmin, as: "chatroomAdmin_chatroom", foreignKey: "chatroomId" });
-  Chatroom.belongsToMany(User, { through: ChatroomBan, as: "chatroomBan_chatroom", foreignKey: "chatroomId" });
+  Chatroom.belongsToMany(User, { through: ChatroomAdmin, as: "admins", foreignKey: "chatroomId" });
+  Chatroom.belongsToMany(User, { through: ChatroomBan, as: "bans", foreignKey: "chatroomId" });
 
   SecurityQuestion.belongsToMany(User, {
     through: SecurityQuestionAnswer,

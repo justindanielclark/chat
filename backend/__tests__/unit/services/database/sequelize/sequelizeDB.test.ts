@@ -945,15 +945,17 @@ describe("-SequelizeDB-", () => {
         expect(result.success).toBe(true);
         if (result.success) {
           const { chatroom, users } = result.value;
-          const chatroomInfo = testChatroomInputs.validChatroom1;
-          expect(chatroom.id).toBe(retreivedChatroomId);
-          expect(chatroom.name).toBe(chatroomInfo.name);
-          expect(chatroom.ownerId).toBe(chatroomInfo.ownerId);
-          expect(chatroom.password).toBe(chatroom.password);
-          const filteredSubs = ChatroomSubscriptions.filter((sub) => sub.chatroomId === 1);
-          users.forEach((user) => {
-            expect(filteredSubs.find((sub) => sub.userId === user.id)).not.toBe(undefined);
-          });
+          const chatroomInfo = Chatrooms.find((room) => (room.id = 1));
+          if (chatroomInfo) {
+            expect(chatroom.id).toBe(retreivedChatroomId);
+            expect(chatroom.name).toBe(chatroomInfo.name);
+            expect(chatroom.ownerId).toBe(chatroomInfo.ownerId);
+            expect(chatroom.password).toBe(chatroom.password);
+            const filteredSubs = ChatroomSubscriptions.filter((sub) => sub.chatroomId === 1);
+            users.forEach((user) => {
+              expect(filteredSubs.find((sub) => sub.userId === user.id)).not.toBe(undefined);
+            });
+          }
         }
       });
       it("fails gracefully when provided an invalid/nonexistant chatroomId, returns {success: false, DatabaseFailureReasons.ChatroomDoesNotExist}", async () => {
@@ -965,9 +967,74 @@ describe("-SequelizeDB-", () => {
       });
     });
     //Chatroom with All Banned Users: Names, Ids
+    describe("retrieveChatroomWithAllBans(id: number)", () => {
+      it("is able to retrieve an existing chatroom with a valid id and return an array of all banned subscribers", async () => {
+        const result = await db.retrieveChatroomWithAllBans(1);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const { chatroom, users } = result.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = chatroom;
+          expect(typeof id).toBe("number");
+          expect(id).toBe(1);
+          expect(typeof ownerId).toBe("number");
+          expect(ownerId).toBe(Users[0].id);
+          expect(typeof name).toBe("string");
+          expect(name).toBe(testChatroomInputs.validChatroom1.name);
+          expect(typeof password).toBe("object");
+          expect(password).toBe(null);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
 
+          const bans = ChatroomBans.filter((bans) => bans.chatroomId === 1);
+          bans.forEach((ban) => {
+            expect(ban.chatroomId).toBe(1);
+            expect(users.find((user) => user.id === ban.userId)).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid/nonexistant chatroomId, return {success: false, DatabaseFailureReasons.ChatroomDoesNotExist}", async () => {
+        const result = await db.retrieveChatroomWithAllBans(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomDoesNotExist);
+        }
+      });
+    });
     //Chatroom With All Admins: Names, Ids
+    describe("retrieveChatroomWithAllAdmins(id: number", () => {
+      it("is able to retrieve an existing chatroom with a valid id and return an array of all admin users", async () => {
+        const retrievedChatroomId = 1;
+        const result = await db.retrieveChatroomWithAllAdmins(retrievedChatroomId);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const { chatroom, users } = result.value;
+          const { id, createdAt, name, ownerId, password, updatedAt } = chatroom;
+          const storedChatroom = Chatrooms.find((room) => (room.id = retrievedChatroomId));
+          expect(typeof id).toBe("number");
+          expect(id).toBe(storedChatroom?.id);
+          expect(typeof ownerId).toBe("number");
+          expect(ownerId).toBe(storedChatroom?.ownerId);
+          expect(typeof name).toBe("string");
+          expect(name).toBe(storedChatroom?.name);
+          expect(password).toBe(storedChatroom?.password);
+          expect(createdAt instanceof Date).toBe(true);
+          expect(updatedAt instanceof Date).toBe(true);
 
+          const admins = ChatroomAdmins.filter((admin) => admin.chatroomId === retrievedChatroomId);
+          admins.forEach((admin) => {
+            expect(admin.chatroomId).toBe(retrievedChatroomId);
+            expect(users.find((user) => user.id === admin.userId)).not.toBe(undefined);
+          });
+        }
+      });
+      it("fails gracefully when provided an invalid/nonexistant chatroomId, returns {success: false, DatabaseFailureReasons.ChatroomDoesNotExist}", async () => {
+        const result = await db.retrieveChatroomWithAllAdmins(1000);
+        expect(result.success).toBe(false);
+        if (!result.success) {
+          expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomDoesNotExist);
+        }
+      });
+    });
     //User with All Susbcribed Chatrooms: Names, Ids
     describe("retrieveUserAndAllSubscribedChatrooms(userId: number)", () => {
       it("can return a user and all their associated subs when provided a valid userId", async () => {

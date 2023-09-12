@@ -28,23 +28,18 @@ interface ChatroomDatabase {
       users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   >;
-  /*
   retrieveChatroomWithAllBans: (id: number) => Promise<
     DatabaseActionResultWithReturnValue<{
       chatroom: Chatroom;
       users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   >;
-  retrieveChatroomWithAllAdmins: (
-    id: number,
-  ) => Promise<
+  retrieveChatroomWithAllAdmins: (id: number) => Promise<
     DatabaseActionResultWithReturnValue<{
       chatroom: Chatroom;
       users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   >;
-
-  */
 }
 
 export default ChatroomDatabase;
