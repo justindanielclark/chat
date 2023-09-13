@@ -1,4 +1,4 @@
-interface User {
+type User = {
   id: number; //PK
   name: string;
   password: string;
@@ -6,7 +6,7 @@ interface User {
   updatedAt: Date;
   is_active: boolean;
   is_online: boolean;
-}
+};
 type UserInput = Pick<User, "name" | "password">;
 
 export default User;

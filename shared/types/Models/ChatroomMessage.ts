@@ -1,4 +1,4 @@
-interface ChatroomMessage {
+type ChatroomMessage = {
   id: number;
   userId: number;
   chatroomId: number;
@@ -6,7 +6,7 @@ interface ChatroomMessage {
   deleted: boolean;
   createdAt: Date;
   updatedAt: Date;
-}
+};
 
 type ChatroomMessageInput = Omit<
   ChatroomMessage,
