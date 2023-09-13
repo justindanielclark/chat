@@ -2,6 +2,7 @@ import { Model, InferAttributes, InferCreationAttributes, CreationOptional, NonA
 
 import Chatroom from "./Chatroom";
 import ChatroomMessage from "./ChatroomMessage";
+import SecurityQuestion from "./SecurityQuestion";
 
 class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare id: CreationOptional<number>;
@@ -17,6 +18,7 @@ class User extends Model<InferAttributes<User>, InferCreationAttributes<User>> {
   declare subscribedTo: NonAttribute<Chatroom[]>;
   declare adminOf: NonAttribute<Chatroom[]>;
   declare writerOf: NonAttribute<ChatroomMessage[]>;
+  declare chosenQuestions: NonAttribute<SecurityQuestion[]>;
 }
 
 export default User;

@@ -28,9 +28,10 @@ export default function setupAssoc() {
 
   User.belongsToMany(SecurityQuestion, {
     through: SecurityQuestionAnswer,
-    as: "securityQuestionAnswer_user",
+    as: "chosenQuestions",
     foreignKey: "userId",
   });
+
   Chatroom.hasMany(ChatroomMessage, {
     sourceKey: "id",
     foreignKey: "messages",
@@ -48,5 +49,17 @@ export default function setupAssoc() {
     through: SecurityQuestionAnswer,
     as: "securityQuestionAnswer_securityQuestion",
     foreignKey: "securityQuestionId",
+  });
+  // SecurityQuestionAnswer.hasOne(User);
+  // SecurityQuestionAnswer.hasOne(SecurityQuestion);
+  SecurityQuestion.hasMany(SecurityQuestionAnswer, {
+    sourceKey: "id",
+    foreignKey: "securityQuestionId",
+    as: "questionOf",
+  });
+  User.hasMany(SecurityQuestionAnswer, {
+    sourceKey: "id",
+    foreignKey: "userId",
+    as: "userOf",
   });
 }

@@ -18,7 +18,6 @@ interface UserDatabase {
     userFieldsToUpdate: AtLeastOne<Pick<User, "is_active" | "is_online" | "name" | "password">>,
   ) => Promise<DatabaseActionResultWithReturnValue<User>>;
   //! Combined Requests
-
   retrieveUserAndAllSubscribedChatrooms: (
     userId: number,
   ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; chatrooms: Pick<Chatroom, "name" | "id">[] }>>;
@@ -31,20 +30,12 @@ interface UserDatabase {
   retrieveUserAndAllAdminChatrooms: (
     userId: number,
   ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; chatrooms: Pick<Chatroom, "name" | "id">[] }>>;
-  /*
-  retrieveUserAndAllChosenSecurityQuestionsByUserName: (
-    userName: string,
-  ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; SecurityQuestions: SecurityQuestion[] }>>;
-  retrieveUserAndAllChosenSecurityQuestionsByUserId: (
+  retrieveUserWithAllChosenSecurityQuestions: (
     userId: number,
-  ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; SecurityQuestions: SecurityQuestion[] }>>;
-  retrieveUserAndAllSecurityQuestionAnswersByUserName: (
-    userName: string,
-  ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; SecurityQuestionAnswers: SecurityQuestionAnswer[] }>>;
-  retrieveUserAndAllSecurityQuestionAnswersByUserId: (
+  ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; questions: SecurityQuestion[] }>>;
+  retrieveUserWithAllSecurityAnswers: (
     userId: number,
-  ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; SecurityQuestionAnswers: SecurityQuestionAnswer[] }>>;
-  */
+  ) => Promise<DatabaseActionResultWithReturnValue<{ user: User; answers: SecurityQuestionAnswer[] }>>;
 }
 
 export default UserDatabase;
