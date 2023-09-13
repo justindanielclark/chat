@@ -40,6 +40,14 @@ interface ChatroomDatabase {
       users: Omit<User, "password" | "createdAt" | "updatedAt">[];
     }>
   >;
+  retrieveChatroomWithAllUserTypes: (id: number) => Promise<
+    DatabaseActionResultWithReturnValue<{
+      chatroom: Chatroom;
+      subscribers: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      bans: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      admins: Omit<User, "password" | "createdAt" | "updatedAt">[];
+    }>
+  >;
 }
 
 export default ChatroomDatabase;

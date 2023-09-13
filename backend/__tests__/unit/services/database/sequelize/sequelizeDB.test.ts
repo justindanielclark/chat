@@ -937,6 +937,7 @@ describe("-SequelizeDB-", () => {
     });
 
     //! Request Joined Items
+
     //Chatroom With All Subscribers: Names, Ids
     describe("retrieveChatroomWithAllSubscribedUsers(chatroomId: number)", () => {
       it("is able to retrieve an existing chatroom with a valid id and return an array of all current subscribers", async () => {
@@ -1034,6 +1035,31 @@ describe("-SequelizeDB-", () => {
           expect(result.failure_id).toBe(DatabaseFailureReasons.ChatroomDoesNotExist);
         }
       });
+    });
+    //Chatroom With All Users Types
+    describe("retrieveChatroomWithAllUserTypes(id: number)", () => {
+      it("is able to retrieve a chatroom if given a valid chatroom id, and returns all associated bans/admins/subscribers", async () => {
+        const retrievedChatroomId = 1;
+        const result = await db.retrieveChatroomWithAllUserTypes(retrievedChatroomId);
+        expect(result.success).toBe(true);
+        if (result.success) {
+          const subs: User[] = [];
+          const admins: User[] = [];
+          const bans: User[] = [];
+          ChatroomSubscriptions.filter((sub) => sub.chatroomId === retrievedChatroomId).forEach((sub) =>
+            subs.push(Users.find((user) => user.id === sub.userId) as User),
+          );
+          ChatroomAdmins.filter((admins) => admins.chatroomId === retrievedChatroomId).forEach((admin) =>
+            admins.push(Users.find((user) => user.id === admin.userId) as User),
+          );
+          ChatroomBans.filter((ban) => ban.chatroomId === retrievedChatroomId).forEach((ban) =>
+            bans.push(Users.find((user) => user.id === ban.userId) as User),
+          );
+
+          console.log(result.value);
+        }
+      });
+      it("is not able to return an invalid chatroom id, returns {success: false, failure_id: DatabaseFailureReasons.ChatroomDoesNotExist}", async () => {});
     });
     //User with All Susbcribed Chatrooms: Names, Ids
     describe("retrieveUserAndAllSubscribedChatrooms(userId: number)", () => {

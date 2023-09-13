@@ -589,6 +589,44 @@ class DB_Instance
       };
     }
   }
+  public async retrieveChatroomWithAllUserTypes(id: number): Promise<
+    DatabaseActionResultWithReturnValue<{
+      chatroom: Chatroom;
+      subscribers: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      bans: Omit<User, "password" | "createdAt" | "updatedAt">[];
+      admins: Omit<User, "password" | "createdAt" | "updatedAt">[];
+    }>
+  > {
+    try {
+      const result = await ChatroomModel.findByPk(id, {
+        include: [
+          { model: UserModel, association: "subscribers", attributes: ["id", "name"] },
+          { model: UserModel, association: "bans", attributes: ["id", "name"] },
+          { model: UserModel, association: "admins", attributes: ["id", "name"] },
+        ],
+      });
+      if (result) {
+        return {
+          success: true,
+          value: {
+            chatroom: result.dataValues,
+            admins: result.admins,
+            bans: result.bans,
+            subscribers: result.subscribers,
+          },
+        };
+      }
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.ChatroomDoesNotExist,
+      };
+    } catch {
+      return {
+        success: false,
+        failure_id: DatabaseFailureReasons.UnknownError,
+      };
+    }
+  }
   public async updateChatroom(
     id: number,
     chatroomFieldsToUpdate: AtLeastOne<Pick<Chatroom, "name" | "password">>,
