@@ -3,11 +3,11 @@ import { Outlet } from "react-router-dom";
 export default function RootLayout() {
   return (
     <>
-      <header className="bg-cyan-100">HEADER</header>
+      <header className="bg-red-100 p-1">HEADER</header>
       <main className="bg-blue-100 flex-1">
         <Outlet />
       </main>
-      <footer className="bg-cyan-100">FOOTER</footer>
+      <footer className="bg-red-100 p-1">FOOTER</footer>
     </>
   );
 }
