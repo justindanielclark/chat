@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsc && vite build --emptyOutDir --watch"
+    "dev": "tsc && vite build --emptyOutDir --watch",
+    "dev-local": "vite"
   },
   "dependencies": {
     "@types/socket.io-client": "^3.0.0",
